@@ -423,3 +423,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 .invite-banner b { color: var(--lime); font-size: 22px; margin-right: 4px; }
 .ib-k { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .ib-s { font-size: 13px; color: var(--muted); }
+
+/* menu zonder voettekst */
+.menu-foot, #credits { display: none !important; }
