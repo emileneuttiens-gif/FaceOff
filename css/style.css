@@ -420,6 +420,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 .inv-wa { background: #25d366; border-color: #25d366; color: #fff; }
 .inv-wa:hover { background: #20bd5a; }
 .invite-banner { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: 18px; padding: 14px 22px; border-radius: 16px; background: rgba(255,59,74,.1); border: 1px solid rgba(255,59,74,.4); animation: fadein .5s ease; }
-.invite-banner b { color: var(--lime); font-size: 22px; }
+.invite-banner b { color: var(--lime); font-size: 22px; margin-right: 4px; }
 .ib-k { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .ib-s { font-size: 13px; color: var(--muted); }
