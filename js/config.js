@@ -10,7 +10,7 @@ export const MUSIC_VIDEO_ID = 'xLFCcnYSCyE';
 export const CHORUS_AT = 44.62;
 // De muziek start bij Enter aan het begin van een zinnetje (25,47 s), niet midden in een woord,
 // en zwelt in één seconde aan. Daardoor duurt de intro ongeveer 19 seconden.
-export const MUSIC_START_SECONDS = 25.2;
+export const MUSIC_START_SECONDS = 25.42;
 
 // Optioneel en het betrouwbaarst: zet een eigen audiobestand in de repo (bv. music/feet.mp3)
 // en vul hier het pad in. Dan wordt YouTube niet gebruikt. Leeg laten = YouTube.
