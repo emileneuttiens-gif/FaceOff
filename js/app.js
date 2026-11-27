@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795783787';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795784664';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -730,7 +730,8 @@ function renderGame() {
     $('#in-guess').disabled = false;
     $('#btn-guess').disabled = false;
     closeAc();
-    lastCount = null; hintsShown = 0;
+    hintsShown = 0;
+    scheduleRound(r);
     cancelAnimationFrame(raf);
     loop();
   }
@@ -745,7 +746,8 @@ function renderGame() {
   if (r.status === 'reveal' && S.revealedRound !== r.round) {
     S.revealedRound = r.round;
     if (S.photoReady) $('#photo').classList.add('show');
-    $('#countdown').textContent = '';
+    cdTimers.forEach(clearTimeout); cdTimers = [];
+    $('#countdown').className = 'countdown'; $('#countdown').textContent = '';
     $('#reveal').hidden = false;
     $('#reveal-name').textContent = r.reveal_name;
     const who = $('#reveal-who');
@@ -786,35 +788,53 @@ function setScore(sel, v) {
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
 }
 
-let lastCount = null, hintsShown = 0;
+// ---- ronde-timing: één keer berekend bij de start van een ronde, daarna puur lokaal ----
+// De aftelling 3-2-1, de tijdbalk en de hints lopen op de klok van dit toestel vanaf een vast
+// startpunt. Latere klok-correcties kunnen de aftelling dus niet meer doen verspringen.
+let hintsShown = 0, roundGo = 0, roundEnd = 0, cdTimers = [], cdRound = 0;
+function scheduleRound(r) {
+  cdTimers.forEach(clearTimeout); cdTimers = [];
+  cdRound = r.round;
+  const inMs = Date.parse(r.round_start) - serverNow();          // hoe lang nog tot de start
+  roundGo = performance.now() + inMs;
+  roundEnd = roundGo + (Date.parse(r.round_deadline) - Date.parse(r.round_start));
+  const cd = $('#countdown');
+  cd.className = 'countdown'; cd.textContent = '';
+  [3, 2, 1].forEach((n) => {
+    const at = inMs - n * 1000;
+    if (at < -150) return;                                          // dat cijfer is al voorbij
+    cdTimers.push(setTimeout(() => {
+      if (cdRound !== r.round) return;
+      cd.textContent = n;
+      cd.className = 'countdown';                                   // animatie herstarten
+      void cd.offsetWidth;
+      cd.className = 'countdown tick';
+      sfx.tick();
+    }, Math.max(0, at)));
+  });
+  cdTimers.push(setTimeout(() => {
+    if (cdRound !== r.round) return;
+    cd.className = 'countdown'; cd.textContent = '';
+    sfx.go();
+    $('#in-guess').focus();
+  }, Math.max(0, inMs)));
+}
+const isLive = () => S.room?.status === 'playing' && performance.now() >= roundGo;
+
 function loop() {
   const r = S.room;
   if (!r || !$('#game').classList.contains('active')) return;
-  const now = serverNow();
-  const start = Date.parse(r.round_start), end = Date.parse(r.round_deadline);
+  const now = performance.now();
   const img = $('#photo');
-  if (r.status === 'playing' && now < start) {
-    const n = Math.ceil((start - now) / 1000);
-    if (n !== lastCount) {
-      lastCount = n;
-      const cd = $('#countdown');
-      cd.textContent = n; cd.classList.remove('tick'); void cd.offsetWidth; cd.classList.add('tick');
-      sfx.tick();
-    }
-    $('#timer-fill').style.transform = 'scaleX(1)';
+  const fill = $('#timer-fill');
+  if (r.status === 'playing' && now < roundGo) {
+    fill.style.transform = 'scaleX(1)';
   } else if (r.status === 'playing') {
-    if (lastCount !== 0) {
-      lastCount = 0;
-      $('#countdown').textContent = '';
-      sfx.go();
-      $('#in-guess').focus();
-    }
     if (S.photoReady && !img.classList.contains('show')) img.classList.add('show');
-    const frac = Math.max(0, Math.min(1, (end - now) / (end - start)));
-    const fill = $('#timer-fill');
+    const frac = Math.max(0, Math.min(1, (roundEnd - now) / (roundEnd - roundGo)));
     fill.style.transform = `scaleX(${frac})`;
     fill.style.backgroundPosition = `${(1 - frac) * 100}% 0`;
-    const el = (now - start) / 1000;
+    const el = (now - roundGo) / 1000;
     const keys = [['land', 'Land'], ['positie', 'Positie'], ['club', 'Club'], ['initialen', 'Initialen']];
     const h = r.hints || {};
     const avail = keys.filter(([k]) => h[k]);
@@ -825,7 +845,7 @@ function loop() {
       beep(440, 0.08, 'triangle', 0.06);
     }
   } else {
-    $('#timer-fill').style.transform = 'scaleX(0)';
+    fill.style.transform = 'scaleX(0)';
   }
   raf = requestAnimationFrame(loop);
 }
@@ -834,7 +854,7 @@ function loop() {
 let guessPending = false;
 async function guess(text) {
   text = (text ?? $('#in-guess').value).trim();
-  if (guessPending || !text || S.room?.status !== 'playing' || serverNow() < Date.parse(S.room.round_start)) return;
+  if (guessPending || !text || !isLive()) return;
   closeAc();
   guessPending = true;
   const round = S.room.round;
