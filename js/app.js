@@ -186,7 +186,7 @@ function buildReel() {
       el.appendChild(video);
     }
     const ph = photoBy[item.photo || item.player];
-    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = ph.photo_url; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
+    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; const big = ph.photo_url.replace(/\/(\d+)px-/, '/1280px-'); img.onerror = () => { if (img.src !== ph.photo_url) img.src = ph.photo_url; }; img.src = big; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
     box.appendChild(el);
     reelItems.push({ el, item, video });
   });
@@ -304,6 +304,7 @@ function openLogin() {
   $('#btn-login').hidden = true;
   $('#login-form').hidden = false;
   $('#in-name').focus();
+  $('#in-name').select();
 }
 $('#btn-login').addEventListener('click', openLogin);
 $('#login-form').addEventListener('submit', (e) => {

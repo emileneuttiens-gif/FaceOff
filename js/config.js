@@ -17,19 +17,19 @@ export const MUSIC_FALLBACK_IDS = ['qZlvBI84mas'];
 // t = startseconde in de video, d = duur van het fragment in seconden.
 // "photo" gebruikt de spelersfoto uit de database (er is geen vrije video van Arda Güler).
 const RONALDO = 'All 48 goals of Cristiano Ronaldo, in 35 league matches for Real Madrid (2014-15).ogv';
-const MESSI = 'Messi. Barcelona (End of an Era).webm';
-const MODRIC = 'Luka Modrić achievements with Real Madrid -shorts -football.webm';
+const CR7 = 'THANK YOU, CRISTIANO RONALDO - Real Madrid Official Video.webm';
 export const REEL = [
-  { file: MESSI, t: 38, d: 1.4, name: 'Lionel Messi', sub: 'FC Barcelona', player: 'Lionel Messi' },
-  { file: RONALDO, t: 47, d: 1.4, name: 'Cristiano Ronaldo', sub: 'Real Madrid · 2014-15', player: 'Cristiano Ronaldo' },
-  { file: MODRIC, t: 9, d: 1.3, name: 'Luka Modrić', sub: 'Real Madrid', player: 'Luka Modrić' },
-  { photo: 'Arda Güler', d: 1.3, name: 'Arda Güler', sub: 'Real Madrid' },
-  { file: 'Neymar takes a free kick - BRA v. RSA, Rio 2016.ogv', t: 11, d: 1.7, name: 'Neymar', sub: 'Brazilië · Rio 2016', player: 'Neymar' },
-  { file: RONALDO, t: 131, d: 1.2, name: 'Cristiano Ronaldo', sub: 'Real Madrid', player: 'Cristiano Ronaldo' },
-  { file: MESSI, t: 71, d: 1.2, name: 'Lionel Messi', sub: 'FC Barcelona', player: 'Lionel Messi' },
-  { file: "Kylian Mbappe at Real Madrid's UEFA Champions League game versus Juventus Turin on 22 October 2025 (video).webm", t: 1, d: 1.3, name: 'Kylian Mbappé', sub: 'Real Madrid', player: 'Kylian Mbappé' },
-  { file: MODRIC, t: 22, d: 1.2, name: 'Luka Modrić', sub: 'Real Madrid', player: 'Luka Modrić' },
-  { file: RONALDO, t: 214, d: 1.2, name: 'Cristiano Ronaldo', sub: 'Real Madrid', player: 'Cristiano Ronaldo' },
-  { file: 'El Real Madrid ofreció la Undécima a los madridistas.webm', t: 70, d: 1.4, name: 'La Undécima', sub: 'Real Madrid · 2016' },
-  { file: MESSI, t: 95, d: 1.6, name: 'Lionel Messi', sub: 'FC Barcelona', player: 'Lionel Messi' },
+  { file: CR7, t: 30, d: 1.3, name: 'Cristiano Ronaldo', sub: 'Real Madrid', player: 'Cristiano Ronaldo' },
+  { photo: 'Lionel Messi', d: 1.2, name: 'Lionel Messi', sub: 'Argentinië' },
+  { file: CR7, t: 45, d: 1.3, name: 'Cristiano Ronaldo', sub: 'Champions League', player: 'Cristiano Ronaldo' },
+  { photo: 'Luka Modrić', d: 1.2, name: 'Luka Modrić', sub: 'Kroatië' },
+  { file: RONALDO, t: 47, d: 1.4, name: 'Cristiano Ronaldo', sub: 'La Liga · 2014-15', player: 'Cristiano Ronaldo' },
+  { photo: 'Arda Güler', d: 1.2, name: 'Arda Güler', sub: 'Real Madrid' },
+  { file: CR7, t: 330, d: 1.3, name: 'Cristiano Ronaldo', sub: 'Real Madrid', player: 'Cristiano Ronaldo' },
+  { photo: 'Kylian Mbappé', d: 1.1, name: 'Kylian Mbappé', sub: 'Real Madrid' },
+  { file: CR7, t: 225, d: 1.3, name: 'Cristiano Ronaldo', sub: 'Champions League', player: 'Cristiano Ronaldo' },
+  { photo: 'Neymar', d: 1.1, name: 'Neymar', sub: 'Brazilië' },
+  { file: CR7, t: 120, d: 1.5, name: 'Cristiano Ronaldo', sub: 'Real Madrid', player: 'Cristiano Ronaldo' },
+  { photo: 'Lamine Yamal', d: 1.1, name: 'Lamine Yamal', sub: 'FC Barcelona' },
+  { file: CR7, t: 15, d: 1.8, name: 'FaceOff', sub: 'Herken ze allemaal', player: 'Cristiano Ronaldo' },
 ];
