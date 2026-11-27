@@ -255,3 +255,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 
 #reel-cap { display: none !important; }
 #tap-hint { display: none !important; }
+/* de Real Madrid-video heeft zwarte balken in het beeld zelf: iets inzoomen om die weg te snijden */
+.clip.on video { animation: punch2 1.6s ease-out forwards; }
+@keyframes punch2 { from { transform: scale(1.42); } to { transform: scale(1.3); } }
