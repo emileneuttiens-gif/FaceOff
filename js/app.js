@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795808508';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795808994';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -889,7 +889,21 @@ function renderGame() {
   setScore('#sb-p2 .sc', r.guest_score);
   $('#sb-round').textContent = `RONDE ${r.round} / ${r.total_rounds}`;
   $("#sb-mode").textContent = leagueName(r.mode_label);
-  $('#btn-skipround').hidden = !(S.solo || !r.guest_name);
+  // "Weet ik niet": solo meteen door, in PvP pas als jullie allebei passen
+  {
+    const sk = $('#btn-skipround'), duo = !S.solo && !!r.guest_name;
+    const myPass = S.slot === 2 ? r.guest_pass : r.host_pass;
+    const oppPass = S.slot === 2 ? r.host_pass : r.guest_pass;
+    const opp = S.slot === 2 ? r.host_name : r.guest_name;
+    sk.hidden = false;
+    const playing = r.status === 'playing';
+    sk.disabled = !playing || !!myPass;
+    sk.textContent = !duo ? 'Weet ik niet' : myPass ? `Gepast · wacht op ${opp}` : oppPass ? 'Ik ook niet' : 'Weet ik niet';
+    sk.classList.toggle('opp-passed', duo && !!oppPass && !myPass && playing);
+    if (playing && myPass) { $('#in-guess').readOnly = true; $('#btn-guess').disabled = true; }
+    const pk = r.round + ':' + (oppPass ? 1 : 0);
+    if (duo && playing && oppPass && !myPass && S.oppPassToast !== pk) { S.oppPassToast = pk; toast(`${opp} weet het niet`); }
+  }
   if (r.next_photo_url) preloadPhoto(r.next_photo_url);
 
   // nieuwe ronde
