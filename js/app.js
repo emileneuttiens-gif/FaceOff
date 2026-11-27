@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL } from './config.js?v=1795778753';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795779746';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -173,7 +173,7 @@ async function prepareReel() {
       + encodeURIComponent(files.map((f) => 'File:' + f).join('|'));
     const j = await fetch(url).then((r) => r.json());
     const norm = {}; (j.query.normalized || []).forEach((n) => { norm[n.to] = n.from; });
-    const small = innerWidth < 700;
+    const small = innerWidth < 1200;
     for (const p of Object.values(j.query.pages)) {
       const v = p.videoinfo?.[0]; if (!v) continue;
       const ds = v.derivatives || [];
@@ -231,51 +231,71 @@ function buildCredits() {
 }
 
 function showClip(i) {
-  reelItems.forEach((r, k) => { if (k !== i) { r.el.classList.remove('on'); if (r.video && r.video !== reelItems[i]?.video) setTimeout(() => { if (!r.el.classList.contains('on')) r.video.pause(); }, 300); } });
-  const r = reelItems[i]; if (!r) return;
-  const useVideo = r.video && r.video.readyState >= 2;
-  if (r.video) {
-    r.video.hidden = !useVideo;
-    const img = r.el.querySelector('img'); if (img) img.hidden = useVideo;
-    if (useVideo) { try { r.video.currentTime = r.item.t; r.video.play(); } catch { /* */ } }
-  }
+  const r = reelItems[i];
+  if (!r || !r.video || r.video.readyState < 2) return false;   // nog niet geladen: huidig fragment laten staan
+  reelItems.forEach((o, k) => {
+    if (k !== i && o.el.classList.contains('on')) {
+      o.el.classList.remove('on');
+      if (o.video !== r.video) setTimeout(() => { if (!o.el.classList.contains('on')) o.video?.pause(); }, 300);
+    }
+  });
+  try { r.video.currentTime = r.item.t; r.video.play().catch(() => {}); } catch { /* */ }
   r.el.classList.remove('on'); void r.el.offsetWidth; r.el.classList.add('on');
-  // zonder video én zonder foto: sla over door de vorige te laten staan
-  if (!useVideo && !r.el.querySelector('img')) r.el.classList.remove('on');
+  return true;
 }
+
+let reelTimer = null, syncTimer = null, introT0 = 0;
+const LOGO_MS = 1000, WELCOME_LEAD = 1.7;            // seconden vóór het refrein dat "Welkom" verschijnt
+const ZOOM_LEAD = (ZOOM_MS + LOGO_MS) / 1000 + WELCOME_LEAD;
+
+// tijd in het nummer; valt terug op de verstreken tijd als de muziek (nog) niet speelt
+function songTime() {
+  const elapsed = (performance.now() - introT0) / 1000;
+  let t = null;
+  try {
+    if (audio && !audio.paused) t = audio.currentTime;
+    else if (ytReady && yt.getPlayerState() === YT.PlayerState.PLAYING) t = yt.getCurrentTime();
+  } catch { /* */ }
+  // geen muziek, of na 40 s nog altijd niet bij het refrein (bv. reclame): op de klok verder
+  if (t == null || t < MUSIC_START_SECONDS - 1 || elapsed > 40) t = Math.max(t ?? 0, MUSIC_START_SECONDS + elapsed);
+  return t;
+}
+
+function syncIntro() {
+  const p = home.dataset.phase, t = songTime();
+  if (p === 'reel' && t >= CHORUS_AT - ZOOM_LEAD) startZoom();
+  else if (p === 'logo' && t >= CHORUS_AT - WELCOME_LEAD) { phase('welcome'); $('#btn-skip').hidden = true; }
+  else if (p === 'welcome' && t >= CHORUS_AT - 0.05) { clearInterval(syncTimer); syncTimer = null; toMenu(); }
+}
+
+function flash() { const fl = $('#reel-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on'); }
 
 function playReel() {
   phase('reel');
   $('#btn-skip').hidden = false;
-  let t = 0;
-  REEL.forEach((item, i) => {
-    setTimeout(() => {
-      if (home.dataset.phase !== 'reel') return;
-      showClip(i);
-      const cap = $('#reel-cap');
-      cap.querySelector('small').textContent = item.sub || '';
-      cap.querySelector('span').textContent = item.name || '';
-      cap.classList.remove('pop'); void cap.offsetWidth; cap.classList.add('pop');
-      const fl = $('#reel-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
-    }, t * 1000);
-    t += item.d;
-  });
-  setTimeout(() => { if (home.dataset.phase === 'reel') startZoom(); }, (t - 0.9) * 1000);
+  introT0 = performance.now();
+  let i = 0;
+  const next = () => {
+    if (home.dataset.phase !== 'reel') return;
+    if (showClip(i % reelItems.length)) flash();
+    reelTimer = setTimeout(next, (REEL[i % REEL.length]?.d || 1.3) * 1000);
+    i++;
+  };
+  next();
+  clearInterval(syncTimer);
+  syncTimer = setInterval(syncIntro, 50);
 }
 
 function startZoom() {
+  clearTimeout(reelTimer);
   phase('zoom');
   zoomStart = performance.now();
   geomLoop();
-  setTimeout(() => {
-    if (home.dataset.phase !== 'zoom') return;
-    phase('logo');
-    setTimeout(() => { if (home.dataset.phase === 'logo') { phase('welcome'); $('#btn-skip').hidden = true; } }, 1100);
-  }, ZOOM_MS);
+  setTimeout(() => { if (home.dataset.phase === 'zoom') phase('logo'); }, ZOOM_MS);
   // in de O blijven de fragmenten doorlopen
   clearInterval(loopTimer);
-  let k = reelItems.length - 1;
-  loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600);
+  let k = Math.max(0, reelItems.findIndex((r) => r.el.classList.contains('on')));
+  loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2400);
 }
 
 // houdt de ring en het videovenster precies op de O, ook tijdens het uitzoomen en omhoog schuiven
@@ -302,6 +322,7 @@ function geomLoop() {
 
 function toMenu() {
   if (home.dataset.phase === 'menu') return;
+  clearInterval(syncTimer); syncTimer = null;
   $('#btn-skip').hidden = true;
   phase('menu');
   if (!geomRaf) geomLoop();
@@ -313,12 +334,19 @@ function toMenu() {
 }
 
 function skipIntro() {
-  // meteen naar de eindsituatie van de animatie
+  // naar net vóór het refrein springen: menu verschijnt dan alsnog op "Feet, don't fail me now"
+  const target = CHORUS_AT - WELCOME_LEAD - 0.2;
+  try {
+    if (audio && !audio.paused) audio.currentTime = target;
+    else if (ytReady) yt.seekTo(target, true);
+  } catch { /* */ }
+  introT0 = performance.now() - (target - MUSIC_START_SECONDS) * 1000;
+  if (home.dataset.phase === 'reel') startZoom();
   zoomStart = performance.now() - ZOOM_MS;
-  if (!loopTimer) startZoom();
   phase('welcome');
   geomLoop();
   $('#btn-skip').hidden = true;
+  if (!syncTimer) syncTimer = setInterval(syncIntro, 50);
 }
 
 // login

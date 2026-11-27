@@ -252,3 +252,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 .music.dim { opacity: 0; pointer-events: none; }
 .music { transition: opacity .4s; }
 .music-fix { position: fixed; top: max(40px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 20; background: var(--lime); color: #071000; border: 0; border-radius: 999px; padding: 12px 22px; font-weight: 800; box-shadow: 0 10px 40px rgba(0,0,0,.5); animation: pulse 1.6s infinite; }
+
+#reel-cap { display: none !important; }
+#tap-hint { display: none !important; }
