@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795808255';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795808508';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -693,6 +693,7 @@ function renderLobby() {
   p2.classList.toggle('waiting', !r.guest_name);
   p2.querySelector('.pname').textContent = S.solo ? 'Oefenmodus' : (r.guest_name || 'Wachten…');
   p2.querySelector('.ptag').textContent = S.solo ? 'Alleen jij' : (r.guest_name ? 'Klaar' : 'Deel de code');
+  renderHandicaps(r);
   $('#mode-picker').hidden = !isHost();
   $('#mode-readonly').hidden = isHost();
   $('#mode-readonly').innerHTML = `<div class="label">Spelmodus</div><b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes<br><span class="small muted">De host kiest de modus</span>`;
@@ -706,6 +707,28 @@ function renderLobby() {
     ? (S.solo || r.guest_name ? '' : 'Wacht tot je tegenstander meedoet, of deel de link.')
     : 'Wachten tot de host start…';
 }
+
+// handicap: een speler mag pas na X seconden raden (host stelt in)
+const HC_OPTS = [0, 3, 5, 8, 10, 15];
+function renderHandicaps(r) {
+  $$('.pcard .hc').forEach((el) => {
+    const slot = +el.dataset.slot;
+    const val = (slot === 1 ? r.host_handicap : r.guest_handicap) || 0;
+    const show = !S.solo && (slot === 1 || r.guest_name);
+    if (!show) { el.innerHTML = ''; return; }
+    if (isHost()) {
+      const html = `<label>Handicap <select data-slot="${slot}">${HC_OPTS.map((o) => `<option value="${o}" ${o === val ? 'selected' : ''}>${o ? o + ' s' : 'geen'}</option>`).join('')}</select></label>`;
+      if (el._v !== html) { el.innerHTML = html; el._v = html; }
+    } else {
+      el.innerHTML = val ? `Handicap: ${val} s` : ''; el._v = '';
+    }
+  });
+}
+$('#lobby').addEventListener('change', async (e) => {
+  const sel = e.target.closest('.hc select'); if (!sel) return;
+  try { applyRoom(await rpc('set_handicap', { p_code: S.code, p_token: S.token, p_slot: +sel.dataset.slot, p_secs: +sel.value })); }
+  catch (err) { toast(err.message); }
+});
 
 async function buildModePicker() {
   const opts = await loadOptions();
@@ -1032,6 +1055,9 @@ function scheduleRound(r) {
     cd.className = 'countdown'; cd.textContent = '';
     sfx.go();
     $('#in-guess').focus();
+    // handicap: deze speler moet nog even wachten voor hij mag raden
+    const hc = (S.slot === 2 ? r.guest_handicap : r.host_handicap) || 0;
+    if (hc > 0 && !S.solo) lockGuess(hc * 1000 + Math.min(0, inMs), 'Handicap');
   }, Math.max(0, inMs)));
 }
 const isLive = () => S.room?.status === 'playing' && performance.now() >= roundGo;
@@ -1075,15 +1101,16 @@ function loop() {
 let guessPending = false;
 // na een foute gok even geblokkeerd (ook op de server afgedwongen)
 let lockUntil = 0;
-function lockGuess(ms) {
+function lockGuess(ms, msg = '') {
   lockUntil = performance.now() + ms;
   const ans = $('.answer'), inp = $('#in-guess'), btn = $('#btn-guess');
+  ans.dataset.msg = msg; ans.classList.toggle('hc-lock', !!msg);
   ans.style.setProperty('--lock-ms', ms + 'ms');
   ans.classList.remove('locked'); void ans.offsetWidth; ans.classList.add('locked');
   inp.readOnly = true; btn.disabled = true;
   clearTimeout(lockGuess.t);
   lockGuess.t = setTimeout(() => {
-    ans.classList.remove('locked'); inp.readOnly = false; btn.disabled = false;
+    ans.classList.remove('locked', 'hc-lock'); ans.dataset.msg = ''; inp.readOnly = false; btn.disabled = false;
     if (isLive()) { inp.focus(); inp.select(); }
   }, ms);
 }
@@ -1103,6 +1130,10 @@ async function guess(text) {
       inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
       guessPending = false; btn.classList.remove('busy'); inp.classList.remove('busy');
       lockGuess(res.wait_ms || 1500);
+      return;
+    } else if (res.reason === 'handicap') {
+      guessPending = false; btn.classList.remove('busy'); inp.classList.remove('busy');
+      lockGuess(res.wait_ms || 1000, 'Handicap');
       return;
     } else if (res.reason === 'cooldown') {
       guessPending = false; btn.classList.remove('busy'); inp.classList.remove('busy');
