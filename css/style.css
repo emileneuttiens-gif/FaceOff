@@ -273,7 +273,7 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 
 /* ---- schild-logo ---- */
 #logo-svg { display: block; height: min(46vh, 62vw); width: auto; overflow: visible; }
-#logo-wrap { will-change: transform; }
+
 #o-ring { display: none !important; }
 #welcome { margin-top: 4px; }
 #home[data-phase="reel"] #logo-wrap { opacity: 0; }
@@ -285,3 +285,5 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #home[data-phase="menu"] #reel { opacity: 0 !important; }
 /* op het loginscherm en tijdens de montage is het schild nog niet zichtbaar */
 #home[data-phase="login"] #brand, #home[data-phase="reel"] #brand { opacity: 0; visibility: hidden; }
+
+#zoom-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }

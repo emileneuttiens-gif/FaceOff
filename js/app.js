@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795781862';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795782219';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -336,33 +336,42 @@ function startZoom() {
   startLoop(2400);   // tijdens het uitzoomen loopt het beeld nog even door
 }
 
-// Uitzoomen door de O van "OFF": het schild start reuzegroot met de O over het hele scherm,
-// het videobeeld zit in de O en vervaagt naar zwart tegen dat de zoom klaar is.
-const O_RX = 19, O_RY = 28, O_SW = 10;            // maten van de O in het logo (SVG-eenheden)
+// Uitzoomen door de O van "OFF". Een schermvullende SVG zoomt via zijn viewBox (vector, dus altijd
+// scherp) van in het gat van de O naar het schild op zijn eindplaats. Het videobeeld zit in het gat
+// en vervaagt naar zwart tegen dat de zoom klaar is.
+const O_CX = 88, O_CY = 198, HOLE_RX = 14, HOLE_RY = 23;   // gat in de O (SVG-eenheden van het logo)
+let zoomSvg = null;
+function ensureZoomSvg() {
+  if (zoomSvg) return zoomSvg;
+  zoomSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  zoomSvg.id = 'zoom-svg';
+  zoomSvg.setAttribute('preserveAspectRatio', 'none');
+  zoomSvg.innerHTML = $('#logo-svg').innerHTML.replace(/id="o-shape"/, '');
+  $('#reel').after(zoomSvg);
+  return zoomSvg;
+}
 function geomLoop() {
   cancelAnimationFrame(geomRaf);
-  const wrap = $('#logo-wrap'), reel = $('#reel');
-  // oorsprong van de zoom = middelpunt van de O, gemeten zonder transform
-  wrap.style.transform = 'none';
-  const w0 = wrap.getBoundingClientRect(), o0 = $('#o-shape').getBoundingClientRect();
-  wrap.style.transformOrigin = `${o0.left - w0.left + o0.width / 2}px ${o0.top - w0.top + o0.height / 2}px`;
-  const innerW0 = o0.width * (O_RX - O_SW / 2) / O_RX;   // breedte van het gat in de O
-  const big = (Math.hypot(innerWidth, innerHeight) * 1.15) / Math.max(4, innerW0);
+  const reel = $('#reel'), svg = ensureZoomSvg(), wrap = $('#logo-wrap');
+  wrap.style.transform = '';
   const step = () => {
     const p = home.dataset.phase;
     if (!home.classList.contains('active')) { geomRaf = null; return; }
+    const L = $('#logo-svg').getBoundingClientRect();
+    const s1 = L.width / 240;                                   // eindschaal (px per SVG-eenheid)
+    const ox = L.left + O_CX * s1, oy = L.top + O_CY * s1;      // plaats van de O op het scherm
+    const s0 = (Math.hypot(innerWidth, innerHeight) * 1.1) / (2 * HOLE_RX);
     let e = 1;
     if (p === 'zoom' && zoomStart != null) e = ease(Math.min(1, (performance.now() - zoomStart) / ZOOM_MS));
-    if (p === 'zoom' || p === 'logo' || p === 'welcome' || p === 'menu') {
-      const sc = big + (1 - big) * e;
-      wrap.style.transform = e >= 1 ? '' : `scale(${sc})`;
-      const r = $('#o-shape').getBoundingClientRect();
-      const k = r.width / (2 * O_RX);
-      const rx = (O_RX - O_SW / 2) * k, ry = (O_RY - O_SW / 2) * k;
-      reel.style.clipPath = `ellipse(${rx}px ${ry}px at ${r.left + r.width / 2}px ${r.top + r.height / 2}px)`;
-      reel.style.opacity = String(Math.max(0, 1 - Math.pow(e, 0.8)));
-      if (e >= 1 && p !== 'zoom') { stopReelLoop(); geomRaf = null; return; }
-    }
+    const sc = Math.exp(Math.log(s0) * (1 - e) + Math.log(s1) * e);   // logaritmisch: voelt als echte zoom
+    const W = innerWidth / sc, H = innerHeight / sc;
+    svg.setAttribute('viewBox', `${O_CX - ox / sc} ${O_CY - oy / sc} ${W} ${H}`);
+    reel.style.clipPath = `ellipse(${HOLE_RX * sc}px ${HOLE_RY * sc}px at ${ox}px ${oy}px)`;
+    reel.style.opacity = String(Math.max(0, 1 - Math.pow(e, 0.8)));
+    const zooming = p === 'zoom' && e < 1;
+    svg.style.display = zooming ? 'block' : 'none';
+    wrap.style.visibility = zooming ? 'hidden' : '';
+    if (!zooming && p !== 'zoom') { stopReelLoop(); geomRaf = null; return; }
     geomRaf = requestAnimationFrame(step);
   };
   step();
@@ -430,7 +439,7 @@ home.addEventListener('click', (e) => { if (home.dataset.phase === 'welcome' && 
 $('#btn-skip').addEventListener('click', (e) => { e.stopPropagation(); skipIntro(); });
 $('#btn-switch').addEventListener('click', () => {
   clearInterval(loopTimer); loopTimer = null;
-  $('#reel').style.clipPath = ''; $('#reel').style.opacity = ''; $('#logo-wrap').style.transform = '';
+  $('#reel').style.clipPath = ''; $('#reel').style.opacity = ''; $('#logo-wrap').style.transform = ''; if (zoomSvg) zoomSvg.style.display = 'none';
   $('#btn-login').hidden = true; $('#login-form').hidden = false;
   phase('login'); $('#in-name').select(); $('#in-name').focus();
 });
