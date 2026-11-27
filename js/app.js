@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795780631';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795781109';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -123,13 +123,26 @@ function startMusic() {
   musicWanted = true; muted = false;
   $('#btn-mute').classList.remove('off');
   if (audio) {
-    audio.currentTime = MUSIC_START_SECONDS; audio.volume = 1; audio.muted = false;
+    audio.currentTime = MUSIC_START_SECONDS; audio.volume = 0; audio.muted = false;
     audio.play().catch(() => {});
   } else if (ytReady) {
-    try { yt.seekTo(MUSIC_START_SECONDS, true); yt.unMute(); yt.setVolume(100); yt.playVideo(); } catch { /* */ }
+    try { yt.seekTo(MUSIC_START_SECONDS, true); yt.unMute(); yt.setVolume(0); yt.playVideo(); } catch { /* */ }
   }
+  fadeIn(1000);
   setTimeout(updateMusicUi, 1500);
   setTimeout(updateMusicUi, 4000);
+}
+// zacht aanzwellen zodat de muziek niet abrupt binnenvalt
+let fadeTimer = null;
+function fadeIn(ms) {
+  clearInterval(fadeTimer);
+  const t0 = performance.now();
+  fadeTimer = setInterval(() => {
+    const f = Math.min(1, (performance.now() - t0) / ms);
+    const v = Math.round(100 * f * f);
+    if (audio) audio.volume = v / 100; else if (ytReady) try { yt.setVolume(v); } catch { /* */ }
+    if (f >= 1) clearInterval(fadeTimer);
+  }, 40);
 }
 function updateMusicUi() {
   if (!musicWanted || muted) { $('#music-fix').hidden = true; return; }
@@ -197,26 +210,68 @@ async function prepareReel() {
   buildCredits();
 }
 
+// Drie video-spelers die om beurt het volgende fragment klaarzetten (laden + spoelen).
+// Zo laadt de browser maar 3 streams tegelijk en hapert er niets.
+const POOL = 3;
+const slots = [];          // { el, video, want: clipIndex|null, ready }
+let curSlot = null;
+
 function buildReel() {
   const box = $('#reel-clips'); box.innerHTML = '';
-  REEL.forEach((item) => {
+  REEL.forEach((item) => reelItems.push({ item }));
+  for (let k = 0; k < POOL; k++) {
     const el = document.createElement('div'); el.className = 'clip';
-    const meta = item.file && reelMeta[item.file];
-    let video = null;
-    if (meta && (meta.webm || meta.mp4)) {
-      video = document.createElement('video');
-      video.muted = true; video.playsInline = true; video.preload = 'auto'; video.loop = true;
-      video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
-      if (meta.webm) video.insertAdjacentHTML('beforeend', `<source src="${esc(meta.webm)}#t=${item.t}" type="video/webm">`);
-      if (meta.mp4) video.insertAdjacentHTML('beforeend', `<source src="${esc(meta.mp4)}#t=${item.t}" type="video/mp4">`);
-      video.addEventListener('loadedmetadata', () => { try { video.currentTime = item.t; } catch { /* */ } }, { once: true });
-      el.appendChild(video);
-    }
-    const ph = photoBy[item.photo || item.player];
-    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; const tries = [1600, 1280, 960].map((w) => ph.photo_url.replace(/\/(\d+)px-/, `/${w}px-`)).concat(ph.photo_url); let ti = 0; img.onerror = () => { ti++; if (ti < tries.length) img.src = tries[ti]; }; img.src = tries[0]; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
-    box.appendChild(el);
-    reelItems.push({ el, item, video });
-  });
+    const video = document.createElement('video');
+    video.muted = true; video.playsInline = true; video.preload = 'auto';
+    video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
+    el.appendChild(video); box.appendChild(el);
+    const slot = { el, video, want: null, ready: false, file: null };
+    video.addEventListener('seeked', () => { if (slot.want != null && video.readyState >= 3) slot.ready = true; });
+    video.addEventListener('canplay', () => { if (slot.want != null && Math.abs(video.currentTime - REEL[slot.want].t) < 0.6) slot.ready = true; });
+    slots.push(slot);
+  }
+  prepare(0); prepare(1); prepare(2);
+}
+
+function srcFor(file) {
+  const m = reelMeta[file]; if (!m) return null;
+  const canWebm = document.createElement('video').canPlayType('video/webm; codecs="vp9"');
+  return (canWebm && m.webm) || m.mp4 || m.webm;
+}
+
+// zet fragment i klaar in een vrije speler
+function prepare(i) {
+  i = ((i % REEL.length) + REEL.length) % REEL.length;
+  if (slots.some((s) => s.want === i)) return;
+  const free = slots.find((s) => s !== curSlot && !slots.some(() => false) && (s.want == null || !isUpcoming(s.want)));
+  const slot = free || slots.find((s) => s !== curSlot);
+  if (!slot) return;
+  const item = REEL[i]; const src = srcFor(item.file); if (!src) return;
+  slot.want = i; slot.ready = false;
+  if (slot.file !== src) { slot.file = src; slot.video.src = src; slot.video.addEventListener('loadedmetadata', () => { if (slot.want === i) slot.video.currentTime = item.t; }, { once: true }); }
+  else { try { slot.video.currentTime = item.t; } catch { /* */ } }
+}
+let shownIdx = -1;
+function isUpcoming(i) { const n = REEL.length; return i === (shownIdx + 1) % n || i === (shownIdx + 2) % n; }
+
+// toon fragment i als het klaar is; anders false (dan blijft het huidige fragment lopen)
+function showClip(i) {
+  i = ((i % REEL.length) + REEL.length) % REEL.length;
+  const slot = slots.find((s) => s.want === i && s.ready);
+  if (!slot) { prepare(i); return false; }
+  const prev = curSlot;
+  curSlot = slot; shownIdx = i;
+  try { slot.video.play().catch(() => {}); } catch { /* */ }
+  slot.el.classList.remove('on'); void slot.el.offsetWidth; slot.el.classList.add('on');
+  if (prev && prev !== slot) { prev.el.classList.remove('on'); setTimeout(() => { if (curSlot !== prev) { prev.video.pause(); prev.want = null; prev.ready = false; prepare(i + 1); prepare(i + 2); } }, 250); }
+  prepare(i + 1); prepare(i + 2);
+  return true;
+}
+
+// in de O / het menu: om de zoveel tijd het volgende fragment
+function startLoop(ms) {
+  clearInterval(loopTimer);
+  loopTimer = setInterval(() => { showClip(shownIdx + 1); }, ms);
 }
 
 function buildCredits() {
@@ -228,20 +283,6 @@ function buildCredits() {
   rows.push('Spelersfoto\'s: Wikimedia Commons, fotograaf en licentie staan onder elke foto in het spel.');
   rows.push('Muziek: Joy Crookes — Feet Don\'t Fail Me Now (via YouTube).');
   $('#credits').innerHTML = rows.join('<br>');
-}
-
-function showClip(i) {
-  const r = reelItems[i];
-  if (!r || !r.video || r.video.readyState < 2) return false;   // nog niet geladen: huidig fragment laten staan
-  reelItems.forEach((o, k) => {
-    if (k !== i && o.el.classList.contains('on')) {
-      o.el.classList.remove('on');
-      if (o.video !== r.video) setTimeout(() => { if (!o.el.classList.contains('on')) o.video?.pause(); }, 300);
-    }
-  });
-  try { r.video.currentTime = r.item.t; r.video.play().catch(() => {}); } catch { /* */ }
-  r.el.classList.remove('on'); void r.el.offsetWidth; r.el.classList.add('on');
-  return true;
 }
 
 let reelTimer = null, syncTimer = null, introT0 = 0;
@@ -277,9 +318,8 @@ function playReel() {
   let i = 0;
   const next = () => {
     if (home.dataset.phase !== 'reel') return;
-    if (showClip(i % reelItems.length)) flash();
-    reelTimer = setTimeout(next, (REEL[i % REEL.length]?.d || 1.3) * 1000);
-    i++;
+    if (showClip(i)) { flash(); reelTimer = setTimeout(next, (REEL[i % REEL.length]?.d || 1.3) * 1000); i++; }
+    else reelTimer = setTimeout(next, 80);   // nog aan het laden: huidig fragment loopt gewoon door
   };
   next();
   clearInterval(syncTimer);
@@ -293,9 +333,7 @@ function startZoom() {
   geomLoop();
   setTimeout(() => { if (home.dataset.phase === 'zoom') phase('logo'); }, ZOOM_MS);
   // in de O blijven de fragmenten doorlopen
-  clearInterval(loopTimer);
-  let k = Math.max(0, reelItems.findIndex((r) => r.el.classList.contains('on')));
-  loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2400);
+  startLoop(2400);
 }
 
 // houdt de ring en het videovenster precies op de O, ook tijdens het uitzoomen en omhoog schuiven
@@ -326,11 +364,11 @@ function toMenu() {
   $('#btn-skip').hidden = true;
   phase('menu');
   if (!geomRaf) geomLoop();
-  if (!loopTimer) { let k = 0; showClip(0); loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600); }
+  if (!loopTimer) { showClip(shownIdx + 1); startLoop(2600); }
   musicVolume(70);
   loadOptions();
   const code = new URLSearchParams(location.search).get('room');
-  if (code && !S.code) { $('#in-code').value = code.toUpperCase(); joinCode(code); }
+  if (code && !S.code) { $('#menu-main').hidden = true; $('#menu-multi').hidden = false; $('#in-code').value = code.toUpperCase(); joinCode(code); }
 }
 
 function skipIntro() {
@@ -401,7 +439,9 @@ $('#btn-create').addEventListener('click', async () => {
   try { enterRoom(await rpc('create_room', { p_name: S.name, p_token: S.token, p_mode: S.draftMode, p_rounds: S.draftRounds }), false); }
   catch (e) { toast(e.message); }
 });
-$('#btn-solo').addEventListener('click', async () => {
+$('#btn-multi').addEventListener('click', () => { $('#menu-main').hidden = true; $('#menu-multi').hidden = false; });
+$('#btn-back').addEventListener('click', () => { $('#menu-multi').hidden = true; $('#menu-main').hidden = false; });
+$('#btn-single').addEventListener('click', async () => {
   try { enterRoom(await rpc('create_room', { p_name: S.name || 'Ik', p_token: S.token, p_mode: S.draftMode, p_rounds: S.draftRounds }), true); }
   catch (e) { toast(e.message); }
 });
@@ -418,14 +458,14 @@ async function joinCode(code) {
 
 function stopReelLoop() {
   clearInterval(loopTimer); loopTimer = null;
-  reelItems.forEach((r) => { try { r.video?.pause(); } catch { /* */ } });
+  slots.forEach((s) => { try { s.video.pause(); } catch { /* */ } });
 }
 
 function backHome() {
   show('home');
   phase('menu');
   geomLoop();
-  if (!loopTimer) { let k = 0; showClip(0); loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600); }
+  if (!loopTimer) { showClip(shownIdx + 1); startLoop(2600); }
 }
 
 async function loadOptions() {

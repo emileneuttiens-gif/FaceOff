@@ -5,12 +5,12 @@ export const SUPABASE_KEY = 'sb_publishable_K1EuyF3DWbHNMasjmU9xZQ_7NRiZiCo';
 
 // YouTube-video voor de intromuziek (Joy Crookes – Feet Don't Fail Me Now)
 export const MUSIC_VIDEO_ID = 'xLFCcnYSCyE';
-// Het refrein ("Feet, don't fail me now") begint op dit moment in het nummer (seconden).
-// Het FaceOff-menu verschijnt precies op dat moment. Klopt het niet helemaal? Pas dit getal aan.
-export const CHORUS_AT = 44.7;
-// Zoveel seconden vóór het refrein start de muziek bij Enter (= lengte van de intro).
-export const INTRO_LEAD = 20;
-export const MUSIC_START_SECONDS = Math.max(0, CHORUS_AT - INTRO_LEAD);
+// Het refrein ("Feet, don't fail me now") begint op dit moment in de officiële video (seconden).
+// Het menu verschijnt precies op dat moment. Klopt het niet helemaal? Pas dit getal aan.
+export const CHORUS_AT = 44.62;
+// De muziek start bij Enter aan het begin van een zinnetje (25,47 s), niet midden in een woord,
+// en zwelt in één seconde aan. Daardoor duurt de intro ongeveer 19 seconden.
+export const MUSIC_START_SECONDS = 25.2;
 
 // Optioneel en het betrouwbaarst: zet een eigen audiobestand in de repo (bv. music/feet.mp3)
 // en vul hier het pad in. Dan wordt YouTube niet gebruikt. Leeg laten = YouTube.

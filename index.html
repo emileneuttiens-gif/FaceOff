@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795780631">
+  <link rel="stylesheet" href="css/style.css?v=1795781109">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -47,12 +47,18 @@
 
     <!-- menu -->
     <div id="menu-opts">
-      <button id="btn-create" class="btn primary">Kamer aanmaken</button>
-      <div class="join-row">
-        <input id="in-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
-        <button id="btn-join" class="btn">Meedoen</button>
+      <div id="menu-main" class="menu-view">
+        <button id="btn-single" class="mode-big"><span class="mb-t">SINGLEPLAYER</span><span class="mb-s">Oefen alleen</span></button>
+        <button id="btn-multi" class="mode-big primary"><span class="mb-t">MULTIPLAYER</span><span class="mb-s">1 tegen 1, live</span></button>
       </div>
-      <button id="btn-solo" class="btn ghost">Alleen oefenen</button>
+      <div id="menu-multi" class="menu-view" hidden>
+        <button id="btn-create" class="btn primary">Kamer aanmaken</button>
+        <div class="join-row">
+          <input id="in-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+          <button id="btn-join" class="btn">Meedoen</button>
+        </div>
+        <button id="btn-back" class="btn ghost">‹ Terug</button>
+      </div>
       <div class="menu-foot">
         <span class="small muted" id="db-stats"></span>
         <button id="btn-switch" class="linkbtn">Niet <span id="switch-name"></span>? Andere naam</button>
@@ -169,6 +175,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795780631"></script>
+  <script type="module" src="js/app.js?v=1795781109"></script>
 </body>
 </html>
