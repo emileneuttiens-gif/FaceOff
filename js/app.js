@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800791';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800852';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -483,7 +483,7 @@ $('#btn-login').addEventListener('click', () => { unlockMusic(); openLogin(); })
 function paintShirt() {
   const i = $('#in-name');
   const w = i.clientWidth || 300;
-  let size = w * 0.15;
+  let size = w * 0.2;
   i.style.fontSize = size + 'px';
   for (let k = 0; k < 30 && i.scrollWidth > i.clientWidth + 1 && size > 12; k++) { size *= 0.92; i.style.fontSize = size + 'px'; }
 }
