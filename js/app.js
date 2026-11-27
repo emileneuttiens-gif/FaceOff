@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795789121';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795789223';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -701,17 +701,10 @@ function pushMode() {
 
 // ---- uitnodigen ----
 const inviteUrl = () => `${location.origin}${location.pathname}?room=${S.code}`;
-const inviteText = () => `${S.name} daagt je uit voor FaceOff! Raad sneller dan ik welke voetballer het is. Doe mee: ${inviteUrl()}`;
-function updateInvite() {
-  $('#btn-wa').href = 'https://wa.me/?text=' + encodeURIComponent(inviteText());
-  $('#btn-share').hidden = !navigator.share;
-}
+function updateInvite() { /* alleen kopiëren */ }
 $('#btn-copy').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(inviteUrl()); toast('Link gekopieerd'); }
   catch { prompt('Kopieer deze link', inviteUrl()); }
-});
-$('#btn-share').addEventListener('click', async () => {
-  try { await navigator.share({ title: 'FaceOff', text: inviteText().replace(/ Doe mee: .*$/, ''), url: inviteUrl() }); } catch { /* geannuleerd */ }
 });
 // wie via een uitnodiging binnenkomt: banner op het loginscherm, en na de naam meteen de kamer in
 const INVITE = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
