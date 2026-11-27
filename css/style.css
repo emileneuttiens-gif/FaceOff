@@ -176,7 +176,8 @@ select { width: 100%; background: #0a0f1a; color: var(--text); border: 1px solid
 .music-artist { font-size: 11px; color: var(--muted); }
 .music-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #151d2e; color: var(--lime); font-size: 16px; }
 .music-btn.off { color: var(--muted); text-decoration: line-through; }
-#game ~ .music { opacity: .85; }
+body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85); transform-origin: left top; opacity: .9; }
+@media (max-width: 1200px) { body.in-game .music { display: none; } }
 
 @media (max-width: 600px) {
   .panel { padding: 20px; }
@@ -187,5 +188,4 @@ select { width: 100%; background: #0a0f1a; color: var(--text); border: 1px solid
   .answer .ac-wrap { flex-basis: 100%; }
   .answer .btn { flex: 1; }
   .music { left: 8px; bottom: 8px; transform: scale(.85); transform-origin: left bottom; }
-  body.in-game .music { display: none; }
 }

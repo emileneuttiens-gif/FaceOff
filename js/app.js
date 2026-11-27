@@ -21,6 +21,8 @@ localStorage.setItem('fo_token', S.token);
 const norm = (t) => (t || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, '').trim();
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const serverNow = () => Date.now() + S.offset;
+const LEAGUE_NAMES = { 'Belgian Pro League': 'Jupiler Pro League', 'Campeonato Brasileiro Série A': 'Brasileirão', 'AFA Liga Profesional de Fútbol': 'Liga Profesional (Argentinië)', 'Major League Soccer': 'MLS', 'J1 League': 'J1 League (Japan)' };
+const leagueName = (n) => LEAGUE_NAMES[n] || n;
 
 function show(id) {
   $$('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
@@ -255,8 +257,8 @@ function renderLobby() {
   p2.querySelector('.ptag').textContent = S.solo ? 'Alleen jij' : (r.guest_name ? 'Klaar' : 'Deel de code');
   $('#mode-picker').hidden = !isHost();
   $('#mode-readonly').hidden = isHost();
-  $('#mode-readonly').innerHTML = `<div class="label">Spelmodus</div><b>${esc(r.mode_label)}</b> · ${r.total_rounds} rondes<br><span class="small muted">De host kiest de modus</span>`;
-  $('#mode-summary').innerHTML = `Modus: <b>${esc(r.mode_label)}</b> · ${r.total_rounds} rondes`;
+  $('#mode-readonly').innerHTML = `<div class="label">Spelmodus</div><b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes<br><span class="small muted">De host kiest de modus</span>`;
+  $('#mode-summary').innerHTML = `Modus: <b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes`;
   $('#mode-summary').hidden = !isHost();
   $('#btn-go').hidden = !isHost();
   $('#btn-go').disabled = !S.solo && !r.guest_name;
@@ -284,13 +286,13 @@ function renderModeSub(opts) {
   const sel = (id, items, val, label) =>
     `<select id="${id}">${items.map((i) => `<option value="${esc(i.value)}" ${i.value === val ? 'selected' : ''}>${esc(i.label)}</option>`).join('')}</select>`;
   if (m.type === 'league') {
-    if (!m.value && leagues[0]) m.value = leagues[0].name;
-    sub.innerHTML = sel('sel-league', leagues.map((l) => ({ value: l.name, label: `${l.name} (${l.n})` })), m.value);
+    if (!m.value) m.value = (leagues.find((l) => l.name === 'Belgian Pro League') || leagues[0])?.name;
+    sub.innerHTML = sel('sel-league', leagues.map((l) => ({ value: l.name, label: `${leagueName(l.name)} (${l.n})` })), m.value);
   } else if (m.type === 'club') {
-    const lg = leagues.find((l) => l.clubs?.some((cl) => cl.id === m.value)) || leagues[0];
+    const lg = leagues.find((l) => l.clubs?.some((cl) => cl.id === m.value)) || leagues.find((l) => l.name === 'Belgian Pro League') || leagues[0];
     const clubs = lg?.clubs || [];
     if (!clubs.some((cl) => cl.id === m.value) && clubs[0]) m.value = clubs[0].id;
-    sub.innerHTML = sel('sel-club-league', leagues.map((l) => ({ value: l.name, label: l.name })), lg?.name)
+    sub.innerHTML = sel('sel-club-league', leagues.map((l) => ({ value: l.name, label: leagueName(l.name) })), lg?.name)
       + sel('sel-club', clubs.map((cl) => ({ value: cl.id, label: `${cl.name} (${cl.n})` })), m.value);
   } else if (m.type === 'country') {
     if (!m.value) m.value = countries.find((x) => x.name === 'België')?.name || countries[0]?.name;
@@ -370,7 +372,7 @@ function renderGame() {
   setScore('#sb-p1 .sc', r.host_score);
   setScore('#sb-p2 .sc', r.guest_score);
   $('#sb-round').textContent = `Ronde ${r.round}/${r.total_rounds}`;
-  $('#sb-mode').textContent = r.mode_label;
+  $("#sb-mode").textContent = leagueName(r.mode_label);
   $('#btn-skipround').hidden = !(S.solo || !r.guest_name);
 
   // nieuwe ronde
