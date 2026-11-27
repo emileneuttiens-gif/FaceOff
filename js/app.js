@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795803284';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795803982';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -696,7 +696,9 @@ function renderLobby() {
   $('#mode-picker').hidden = !isHost();
   $('#mode-readonly').hidden = isHost();
   $('#mode-readonly').innerHTML = `<div class="label">Spelmodus</div><b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes<br><span class="small muted">De host kiest de modus</span>`;
-  $('#mode-summary').innerHTML = `Modus: <b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes`;
+  const rec = S.solo ? +(localStorage.getItem(recordKey(r)) || 0) : 0;
+  $('#mode-summary').innerHTML = `Modus: <b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes`
+    + (S.solo ? `<br><span class="record">${rec ? `Jouw record: <b>${rec}</b>` : 'Nog geen record in deze modus'}</span>` : '');
   $('#mode-summary').hidden = !isHost();
   $('#btn-go').hidden = !isHost();
   $('#btn-go').disabled = !S.solo && !r.guest_name;
@@ -885,6 +887,7 @@ function renderGame() {
     closeAc();
     hintsShown = 0;
     renderStreak(r);
+    lockUntil = 0; clearTimeout(lockGuess.t); $('.answer').classList.remove('locked'); $('#btn-guess').disabled = false; $('#in-guess').readOnly = false;
     scheduleRound(r);
     cancelAnimationFrame(raf);
     loop();
@@ -1070,9 +1073,23 @@ function loop() {
 
 // raden
 let guessPending = false;
+// na een foute gok even geblokkeerd (ook op de server afgedwongen)
+let lockUntil = 0;
+function lockGuess(ms) {
+  lockUntil = performance.now() + ms;
+  const ans = $('.answer'), inp = $('#in-guess'), btn = $('#btn-guess');
+  ans.style.setProperty('--lock-ms', ms + 'ms');
+  ans.classList.remove('locked'); void ans.offsetWidth; ans.classList.add('locked');
+  inp.readOnly = true; btn.disabled = true;
+  clearTimeout(lockGuess.t);
+  lockGuess.t = setTimeout(() => {
+    ans.classList.remove('locked'); inp.readOnly = false; btn.disabled = false;
+    if (isLive()) { inp.focus(); inp.select(); }
+  }, ms);
+}
 async function guess(text) {
   text = (text ?? $('#in-guess').value).trim();
-  if (guessPending || !text || !isLive()) return;
+  if (guessPending || !text || !isLive() || performance.now() < lockUntil) return;
   closeAc();
   guessPending = true;
   const round = S.room.round;
@@ -1084,12 +1101,19 @@ async function guess(text) {
     else if (res.reason === 'wrong' && S.room.round === round) {
       sfx.bad();
       inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
-      setTimeout(() => inp.select(), 0);
+      guessPending = false; btn.classList.remove('busy'); inp.classList.remove('busy');
+      lockGuess(res.wait_ms || 1500);
+      return;
+    } else if (res.reason === 'cooldown') {
+      guessPending = false; btn.classList.remove('busy'); inp.classList.remove('busy');
+      lockGuess(res.wait_ms || 500);
+      return;
     }
   } catch (e) { toast(e.message); }
   finally {
     guessPending = false;
-    btn.classList.remove('busy'); inp.classList.remove('busy'); inp.readOnly = false;
+    btn.classList.remove('busy'); inp.classList.remove('busy');
+    if (performance.now() >= lockUntil) inp.readOnly = false;
   }
 }
 $('#btn-guess').addEventListener('click', () => guess());
@@ -1147,6 +1171,7 @@ $('#ac-list').addEventListener('mousedown', (e) => {
 $('#in-guess').addEventListener('blur', () => setTimeout(closeAc, 150));
 
 // ---------- einde ----------
+const recordKey = (r) => `fo_best:${r.mode_label || 'bekend'}:${r.total_rounds}`;
 function renderEnd() {
   const r = S.room;
   if (!$('#end').classList.contains('active')) {
@@ -1169,6 +1194,18 @@ function renderEnd() {
   if (r.left_slot && r.left_slot !== S.slot) {
     title = `<span class="win">Gewonnen</span>`;
     $('#end-hint').textContent = `${esc(r.left_slot === 1 ? r.host_name : r.guest_name)} heeft het spel verlaten.`;
+  }
+  // persoonlijk record (singleplayer), per modus en aantal rondes
+  if (solo) {
+    if (S.lastStatus !== 'finished') {
+      const key = recordKey(r), prev = +(localStorage.getItem(key) || 0);
+      S.endRecord = r.host_score > prev ? { neu: true, prev } : { neu: false, prev };
+      if (r.host_score > prev) localStorage.setItem(key, r.host_score);
+    }
+    const rec = S.endRecord || { neu: false, prev: 0 };
+    title += rec.neu
+      ? `<div class="record new">Nieuw record!${rec.prev ? ` <small>(was ${rec.prev})</small>` : ''}</div>`
+      : `<div class="record">Jouw record: <b>${rec.prev}</b> · nog ${rec.prev - r.host_score + 1} te gaan</div>`;
   }
   $('#end-title').innerHTML = title;
   $('#btn-again').hidden = !isHost() || !!(r.left_slot && r.left_slot !== S.slot);

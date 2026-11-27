@@ -485,3 +485,15 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 /* gat in de O: tijdens het uitzoomen open, daarna dezelfde tint als het schild */
 #o-fill { opacity: 0; transition: opacity .6s ease .2s; }
 #home[data-phase="logo"] #o-fill, #home[data-phase="welcome"] #o-fill, #home[data-phase="menu"] #o-fill { opacity: 1; }
+/* straf na foute gok: balk loopt leeg, invoer even op slot */
+.answer { position: relative; }
+.answer::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 3px; border-radius: 2px; background: var(--lime); transform-origin: left; transform: scaleX(0); opacity: 0; }
+.answer.locked::after { opacity: 1; animation: lockbar var(--lock-ms, 1500ms) linear forwards; }
+@keyframes lockbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.answer.locked #in-guess { opacity: .55; }
+/* persoonlijk record */
+.record { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: var(--muted); margin-top: 8px; letter-spacing: 0; }
+.record b { color: var(--text); }
+.record.new { color: var(--lime); font-family: var(--display); font-size: 26px; letter-spacing: .04em; animation: streakpop .7s cubic-bezier(.2,1.6,.3,1); }
+.record.new small { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--muted); }
+#mode-summary .record { font-size: 13px; margin-top: 4px; display: inline-block; }
