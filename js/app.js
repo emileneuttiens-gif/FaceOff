@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795782999';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795783007';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -606,7 +606,7 @@ function renderModeSub(opts) {
     if (!m.value) m.value = countries.find((x) => x.name === 'België')?.name || countries[0]?.name;
     sub.innerHTML = sel('sel-country', countries.map((x) => ({ value: x.name, label: `${x.name} (${x.n})` })), m.value);
   } else {
-    const txt = { bekend: `Sterren die nu spelen bij de topclubs van de wereld (${c.bekend || "…"} spelers).`, alles: `Alle ${c.alles || ''} voetballers. Ook de onbekende — succes.`, legend: `Gestopte grootheden (${c.legend || '…'}).`, vrouwen: `Topspeelsters (${c.vrouwen || '…'}).` }[m.type];
+    const txt = { bekend: `Sterren die nu spelen bij de topclubs van de wereld (${c.bekend || "…"} spelers).`, alles: `Alle ${c.alles || ''} actieve spelers uit 16 competities. Ook de onbekende, succes.`, legend: `Gestopte grootheden (${c.legend || '…'}).`, vrouwen: `Topspeelsters (${c.vrouwen || '…'}).` }[m.type];
     sub.innerHTML = `<div class="small muted">${txt || ''}</div>`;
   }
   $('#sel-league')?.addEventListener('change', (e) => { m.value = e.target.value; pushMode(); });
