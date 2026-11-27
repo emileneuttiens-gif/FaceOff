@@ -246,7 +246,7 @@ function startZoom() {
   setTimeout(() => {
     if (home.dataset.phase !== 'zoom') return;
     phase('logo');
-    setTimeout(() => { if (home.dataset.phase === 'logo') phase('welcome'); }, 1100);
+    setTimeout(() => { if (home.dataset.phase === 'logo') { phase('welcome'); $('#btn-skip').hidden = true; } }, 1100);
   }, ZOOM_MS);
   // in de O blijven de fragmenten doorlopen
   clearInterval(loopTimer);
