@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795787965';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795788802';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -260,8 +260,25 @@ async function prepareReel() {
     const { data } = await sb.from('players').select('name,photo_url,photo_author,photo_license,photo_page').in('name', names);
     (data || []).forEach((p) => { photoBy[p.name] = p; });
   } catch { /* */ }
-  buildReel();
   buildCredits();
+}
+
+// ---- intro: één vooraf gemonteerde video (fade uit zwart, harde cuts, scherp), ----
+// ---- al volledig geladen terwijl je je naam typt: geen zwart gat, geen haperen.  ----
+const INTRO_SRC = (Math.max(screen.width, screen.height) * (devicePixelRatio || 1) >= 1700 && !navigator.connection?.saveData)
+  ? 'media/intro-1080.mp4?v=2' : 'media/intro-720.mp4?v=2';
+const introVid = document.createElement('video');
+introVid.muted = true; introVid.playsInline = true; introVid.preload = 'auto';
+introVid.setAttribute('muted', ''); introVid.setAttribute('playsinline', '');
+introVid.className = 'intro-vid';
+$('#reel-clips').appendChild(introVid);
+fetch(INTRO_SRC).then((r) => (r.ok ? r.blob() : Promise.reject()))
+  .then((b) => { if (!introVid.src) { introVid.src = URL.createObjectURL(b); introVid.load(); } })
+  .catch(() => { if (!introVid.src) introVid.src = INTRO_SRC; });
+function playIntroVideo() {
+  if (!introVid.src) introVid.src = INTRO_SRC;          // nog niet volledig binnen: dan streamen
+  try { introVid.currentTime = 0; } catch { /* */ }
+  introVid.play().catch(() => {});
 }
 
 // Drie video-spelers die om beurt het volgende fragment klaarzetten (laden + spoelen).
@@ -370,13 +387,7 @@ function playReel() {
   phase('reel');
   $('#btn-skip').hidden = false;
   introT0 = performance.now();
-  let i = 0;
-  const next = () => {
-    if (home.dataset.phase !== 'reel') return;
-    if (showClip(i)) { flash(); reelTimer = setTimeout(next, (REEL[i % REEL.length]?.d || 1.3) * 1000); i++; }
-    else reelTimer = setTimeout(next, 80);   // nog aan het laden: huidig fragment loopt gewoon door
-  };
-  next();
+  playIntroVideo();
   clearInterval(syncTimer);
   syncTimer = setInterval(syncIntro, 50);
 }
@@ -387,8 +398,6 @@ function startZoom() {
   zoomStart = performance.now();
   geomLoop();
   setTimeout(() => { if (home.dataset.phase === 'zoom') phase('logo'); }, ZOOM_MS);
-  // in de O blijven de fragmenten doorlopen
-  startLoop(2400);   // tijdens het uitzoomen loopt het beeld nog even door
 }
 
 // Uitzoomen door de O van "OFF". Een schermvullende SVG zoomt via zijn viewBox (vector, dus altijd
@@ -531,7 +540,7 @@ async function joinCode(code) {
 
 function stopReelLoop() {
   clearInterval(loopTimer); loopTimer = null;
-  slots.forEach((s) => { try { s.video.pause(); } catch { /* */ } });
+  try { introVid.pause(); } catch { /* */ }
 }
 
 function backHome() {
