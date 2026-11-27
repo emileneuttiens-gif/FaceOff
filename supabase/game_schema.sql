@@ -302,3 +302,8 @@ begin
   return fo_room_json(p_code);
 end $$;
 grant execute on function public.leave_room(text, uuid) to anon, authenticated;
+
+-- reeks-vermenigvuldiger (x1, x2, x3 max): zie migratie streak_multiplier
+alter table public.rooms add column if not exists host_streak int not null default 0;
+alter table public.rooms add column if not exists guest_streak int not null default 0;
+alter table public.rooms add column if not exists round_mult int;

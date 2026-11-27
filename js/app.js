@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795785709';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795786962';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -77,7 +77,7 @@ function beep(freq = 660, dur = 0.12, type = 'sine', vol = 0.15) {
 const sfx = {
   tick: () => beep(520, 0.09, 'square', 0.08),
   go: () => beep(880, 0.25, 'square', 0.1),
-  good: () => { beep(660, 0.1); setTimeout(() => beep(990, 0.22), 90); },
+  good: (m = 1) => { const f = [1, 1.26, 1.5][Math.min(3, m) - 1]; beep(660 * f, 0.1); setTimeout(() => beep(990 * f, 0.22), 90); if (m >= 3) setTimeout(() => beep(1320, 0.25), 200); },
   bad: () => beep(170, 0.22, 'sawtooth', 0.08),
   lose: () => { beep(330, 0.15, 'triangle'); setTimeout(() => beep(220, 0.3, 'triangle'), 140); },
 };
@@ -754,16 +754,23 @@ function renderGame() {
   $('#game .scorebar').classList.toggle('solo', S.solo || !r.guest_name);
   $('#sb-p1 .nm').textContent = r.host_name;
   $('#sb-p2 .nm').textContent = r.guest_name || '';
+  $('#sb-p1 .av').textContent = initials(r.host_name);
+  $('#sb-p2 .av').textContent = initials(r.guest_name);
+  $('#sb-p1').classList.toggle('me', S.slot === 1);
+  $('#sb-p2').classList.toggle('me', S.slot === 2);
   setScore('#sb-p1 .sc', r.host_score);
   setScore('#sb-p2 .sc', r.guest_score);
-  $('#sb-round').textContent = `Ronde ${r.round}/${r.total_rounds}`;
+  $('#sb-round').textContent = `RONDE ${r.round} / ${r.total_rounds}`;
   $("#sb-mode").textContent = leagueName(r.mode_label);
   $('#btn-skipround').hidden = !(S.solo || !r.guest_name);
   if (r.next_photo_url) preloadPhoto(r.next_photo_url);
 
   // nieuwe ronde
   if (r.round !== S.shownRound) {
+    if (r.round <= 1 || !S.hist) S.hist = {};
     S.shownRound = r.round;
+    $('#photo-wrap').classList.remove('revealed', 'hit');
+    $('#pop').hidden = true;
     setRoundPhoto(r.photo_url);
     $('#credit').textContent = r.photo_credit ? `Foto: ${r.photo_credit} · Wikimedia Commons` : '';
     $('#hints').innerHTML = '';
@@ -775,6 +782,7 @@ function renderGame() {
     $('#btn-guess').disabled = false;
     closeAc();
     hintsShown = 0;
+    renderStreak(r);
     scheduleRound(r);
     cancelAnimationFrame(raf);
     loop();
@@ -793,15 +801,18 @@ function renderGame() {
     cdTimers.forEach(clearTimeout); cdTimers = [];
     $('#countdown').className = 'countdown'; $('#countdown').textContent = '';
     $('#reveal').hidden = false;
+    $('#photo-wrap').classList.add('revealed');
     $('#reveal-name').textContent = r.reveal_name;
     const who = $('#reveal-who');
+    S.hist[r.round] = r.round_winner ? (r.round_winner === S.slot ? 'me' : 'opp') : 'none';
     if (r.round_winner) {
       const nm = r.round_winner === 1 ? r.host_name : r.guest_name;
       const me = r.round_winner === S.slot;
-      who.className = `reveal-who p${r.round_winner}`;
-      who.textContent = me ? `Jij had hem! +${r.round_points}` : `${nm} was sneller +${r.round_points}`;
+      const m = r.round_mult || 1;
+      who.className = `reveal-who ${me ? 'me' : 'p' + r.round_winner}`;
+      who.textContent = me ? 'Jij had hem!' : `${nm} was sneller (+${r.round_points})`;
       $('#photo-wrap').classList.add(me ? 'win' : 'lose');
-      me ? sfx.good() : sfx.lose();
+      if (me) celebrate(r, m); else sfx.lose();
     } else {
       who.className = 'reveal-who none';
       who.textContent = 'Niemand had hem…';
@@ -810,12 +821,67 @@ function renderGame() {
     $('#in-guess').disabled = true;
     $('#btn-guess').disabled = true;
     closeAc();
+    renderStreak(r);
   }
+  renderDots(r);
+}
+
+const initials = (n) => (n || '').trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+function renderDots(r) {
+  const el = $('#sb-dots');
+  let html = '';
+  for (let i = 1; i <= r.total_rounds; i++) {
+    const h = S.hist?.[i];
+    const cls = h || (i === r.round && r.status === 'playing' ? 'cur' : '');
+    html += `<i class="${cls}"></i>`;
+  }
+  if (el._h !== html) { el.innerHTML = html; el._h = html; }
+}
+// reeks: x-waarde die je volgende juiste gok krijgt (max x3)
+let lastStreak = 0;
+function renderStreak(r) {
+  const st = (S.slot === 2 ? r.guest_streak : r.host_streak) || 0;
+  const m = Math.min(st + 1, 3);
+  const b = $('#streak');
+  $('#streak-x').textContent = 'x' + m;
+  b.classList.toggle('off', st === 0);
+  b.classList.toggle('max', m === 3);
+  $('#streak-t').textContent = st ? `${st} op rij` : 'Nog geen reeks';
+  $('#streak-s').textContent = st === 0 ? 'Raad juist om te starten' : (m < 3 ? `Daarna x${m + 1}` : 'Maximale bonus');
+  if (st > lastStreak) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  lastStreak = st;
+}
+// juist geraden: flits, schok, punten die naar je score vliegen
+let scoreHold = 0;
+function celebrate(r, m) {
+  sfx.good(m);
+  const wrap = $('#photo-wrap');
+  wrap.classList.remove('hit'); void wrap.offsetWidth; wrap.classList.add('hit');
+  const fl = $('#flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+  const speed = Math.round(r.round_points / m) - 100;
+  const pop = $('#pop');
+  pop.innerHTML = `+${r.round_points}` + (m > 1 ? `<small>x${m}</small>` : '') + (speed >= 60 ? '<small>· snel</small>' : '');
+  pop.hidden = false;
+  // vliegende punten
+  scoreHold = performance.now() + 700;
+  const target = $(S.slot === 2 ? '#sb-p2 .sc' : '#sb-p1 .sc').getBoundingClientRect();
+  const from = pop.getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'flyer'; f.textContent = `+${r.round_points}`;
+  f.style.left = from.left + 'px'; f.style.top = from.top + 'px';
+  document.body.appendChild(f);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    f.style.transform = `translate(${target.left - from.left}px, ${target.top - from.top}px) scale(.6)`;
+    f.style.opacity = '0.2';
+  }));
+  setTimeout(() => f.remove(), 750);
 }
 
 // punten optellen met een korte tel-animatie
 function setScore(sel, v) {
   const el = $(sel);
+  const wait = scoreHold - performance.now();
+  if (wait > 0) { clearTimeout(el._hold); el._hold = setTimeout(() => setScore(sel, v), wait); return; }
   const to = Number(v) || 0;
   const from = Number(el.dataset.v ?? el.textContent) || 0;
   if (from === to && el.dataset.v != null) return;
@@ -870,14 +936,20 @@ function loop() {
   if (!r || !$('#game').classList.contains('active')) return;
   const now = performance.now();
   const img = $('#photo');
-  const fill = $('#timer-fill');
+  const ring = $('#ring'), ringN = $('#ring-n');
+  const total = (roundEnd - roundGo) / 1000;
+  const setRing = (frac, secs) => {
+    ring.style.setProperty('--p', frac.toFixed(4));
+    const t = String(Math.max(0, Math.ceil(secs)));
+    if (ringN.textContent !== t) ringN.textContent = t;
+    ring.classList.toggle('low', secs <= 5 && frac > 0);
+  };
   if (r.status === 'playing' && now < roundGo) {
-    fill.style.transform = 'scaleX(1)';
+    setRing(1, total);
   } else if (r.status === 'playing') {
     if (S.photoReady && !img.classList.contains('show')) img.classList.add('show');
     const frac = Math.max(0, Math.min(1, (roundEnd - now) / (roundEnd - roundGo)));
-    fill.style.transform = `scaleX(${frac})`;
-    fill.style.backgroundPosition = `${(1 - frac) * 100}% 0`;
+    setRing(frac, (roundEnd - now) / 1000);
     const el = (now - roundGo) / 1000;
     const keys = [['land', 'Land'], ['positie', 'Positie'], ['club', 'Club'], ['initialen', 'Initialen']];
     const h = r.hints || {};
@@ -889,7 +961,7 @@ function loop() {
       beep(440, 0.08, 'triangle', 0.06);
     }
   } else {
-    fill.style.transform = 'scaleX(0)';
+    setRing(0, 0);
   }
   raf = requestAnimationFrame(loop);
 }
