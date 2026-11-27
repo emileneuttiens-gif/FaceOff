@@ -7,6 +7,10 @@ export const SUPABASE_KEY = 'sb_publishable_K1EuyF3DWbHNMasjmU9xZQ_7NRiZiCo';
 export const MUSIC_VIDEO_ID = 'xLFCcnYSCyE';
 export const MUSIC_START_SECONDS = 0;
 
+// Optioneel en het betrouwbaarst: zet een eigen audiobestand in de repo (bv. music/feet.mp3)
+// en vul hier het pad in. Dan wordt YouTube niet gebruikt. Leeg laten = YouTube.
+export const MUSIC_FILE = '';
+
 // Wanneer de hints verschijnen (seconden na de start van een ronde)
 export const HINT_TIMES = [8, 14, 20, 25];
 

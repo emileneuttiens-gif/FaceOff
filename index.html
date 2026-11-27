@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795778536">
+  <link rel="stylesheet" href="css/style.css?v=1795778753">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -19,7 +19,6 @@
     <!-- reel (video's in de O) -->
     <div id="reel" aria-hidden="true">
       <div id="reel-clips"></div>
-      <div id="reel-bars"></div>
       <div id="reel-cap"><small></small><span></span></div>
       <div id="reel-flash"></div>
     </div>
@@ -156,9 +155,12 @@
 
   <button id="music-fix" class="music-fix" hidden>Tik hier om de muziek te starten</button>
 
+  <!-- YouTube-speler: moet minstens 200x200 zijn om te mogen spelen; staat onzichtbaar achter de pagina -->
+  <div id="yt-holder" aria-hidden="true"><div id="yt"></div></div>
+
   <!-- muziek -->
   <div class="music dim" id="music">
-    <div class="music-art"><div id="yt"></div></div>
+    <div class="music-art"><div class="eq"><i></i><i></i><i></i><i></i></div></div>
     <div class="music-meta">
       <div class="music-title">Feet Don't Fail Me Now</div>
       <div class="music-artist">Joy Crookes</div>
@@ -167,6 +169,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795778536"></script>
+  <script type="module" src="js/app.js?v=1795778753"></script>
 </body>
 </html>

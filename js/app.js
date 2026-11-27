@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, HINT_TIMES, REEL } from './config.js?v=1795778536';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL } from './config.js?v=1795778753';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -68,30 +68,38 @@ const sfx = {
   lose: () => { beep(330, 0.15, 'triangle'); setTimeout(() => beep(220, 0.3, 'triangle'), 140); },
 };
 
-// ---------- muziek (YouTube) ----------
-// De speler start meteen gedempt (mag zonder klik). Zo is een eventuele advertentie al
-// voorbij en zit de video in de "spelen"-stand. Bij Enter (een echte klik/toets) zetten we
-// het geluid aan en springen we naar het begin van het nummer.
+// ---------- muziek ----------
+// Twee bronnen: (1) een eigen audiobestand als dat in de repo staat (MUSIC_FILE) — het meest
+// betrouwbaar; (2) anders de YouTube-speler. YouTube speelt alleen als de speler minstens
+// 200x200 px groot is, daarom staat hij onzichtbaar achter de pagina op volle grootte.
 const MUSIC_IDS = [MUSIC_VIDEO_ID, ...MUSIC_FALLBACK_IDS];
-let yt = null, ytReady = false, ytIdx = 0, musicWanted = false, muted = false;
+let yt = null, ytReady = false, ytIdx = 0, ytErr = null, musicWanted = false, muted = false;
+let audio = null;            // HTMLAudioElement als er een bestand is
+
+if (MUSIC_FILE) {
+  const a = new Audio();
+  a.preload = 'auto'; a.loop = true; a.src = MUSIC_FILE;
+  a.addEventListener('canplay', () => { audio = a; }, { once: true });
+}
+
 window.onYouTubeIframeAPIReady = () => {
   yt = new YT.Player('yt', {
-    width: 64, height: 36, videoId: MUSIC_IDS[0],
-    playerVars: { autoplay: 1, mute: 1, start: MUSIC_START_SECONDS, controls: 0, disablekb: 1, playsinline: 1, rel: 0, iv_load_policy: 3, origin: location.origin },
+    width: 320, height: 240, videoId: MUSIC_IDS[0],
+    playerVars: { autoplay: 0, start: MUSIC_START_SECONDS, controls: 0, disablekb: 1, playsinline: 1, rel: 0, iv_load_policy: 3, origin: location.origin },
     events: {
-      onReady: () => {
-        ytReady = true;
-        try { if (!musicWanted) yt.mute(); yt.playVideo(); } catch { /* */ }
-        if (musicWanted) startMusic();
-      },
+      onReady: () => { ytReady = true; if (musicWanted && !audio) startMusic(); },
       onStateChange: (e) => {
         if (e.data === YT.PlayerState.ENDED) { yt.seekTo(MUSIC_START_SECONDS, true); yt.playVideo(); }
+        if (e.data === YT.PlayerState.PLAYING) updateMusicUi();
       },
-      onError: () => {
+      onError: (e) => {
+        ytErr = e.data;
         ytIdx++;
         if (ytIdx < MUSIC_IDS.length) {
           yt.loadVideoById({ videoId: MUSIC_IDS[ytIdx], startSeconds: MUSIC_START_SECONDS });
-          if (musicWanted) setTimeout(startMusic, 300); else yt.mute();
+        } else {
+          console.warn('YouTube-muziek geblokkeerd, foutcode', e.data);
+          updateMusicUi();
         }
       },
     },
@@ -99,33 +107,53 @@ window.onYouTubeIframeAPIReady = () => {
 };
 if (window.YT && window.YT.Player) window.onYouTubeIframeAPIReady();
 
+function musicPlaying() {
+  if (audio) return !audio.paused && !audio.muted;
+  try { return ytReady && yt.getPlayerState() === YT.PlayerState.PLAYING && !yt.isMuted(); } catch { return false; }
+}
+
+// "ontgrendelen" bij de eerste klik (LOGIN): stil starten, zodat het geluid er bij Enter meteen is
+function unlockMusic() {
+  if (audio) { audio.volume = 0; audio.play().then(() => { if (!musicWanted) { audio.pause(); audio.volume = 1; } }).catch(() => {}); return; }
+  if (ytReady) try { yt.unMute(); yt.setVolume(0); yt.playVideo(); } catch { /* */ }
+}
+
 // moet binnen een klik/toets-handler aangeroepen worden
 function startMusic() {
   musicWanted = true; muted = false;
   $('#btn-mute').classList.remove('off');
-  if (!ytReady) return;
-  try {
-    yt.seekTo(MUSIC_START_SECONDS, true);
-    yt.unMute(); yt.setVolume(100); yt.playVideo();
-  } catch { /* */ }
-  // vangnet: speelt het toch niet (bv. iPhone), toon dan een duidelijke knop
-  setTimeout(checkMusic, 1800);
+  if (audio) {
+    audio.currentTime = MUSIC_START_SECONDS; audio.volume = 1; audio.muted = false;
+    audio.play().catch(() => {});
+  } else if (ytReady) {
+    try { yt.seekTo(MUSIC_START_SECONDS, true); yt.unMute(); yt.setVolume(100); yt.playVideo(); } catch { /* */ }
+  }
+  setTimeout(updateMusicUi, 1500);
+  setTimeout(updateMusicUi, 4000);
 }
-function checkMusic() {
-  if (!ytReady || muted) return;
-  let ok = false;
-  try { ok = yt.getPlayerState() === YT.PlayerState.PLAYING && !yt.isMuted(); } catch { /* */ }
-  $('#music-fix').hidden = ok;
+function updateMusicUi() {
+  if (!musicWanted || muted) { $('#music-fix').hidden = true; return; }
+  const ok = musicPlaying();
+  const fix = $('#music-fix');
+  fix.hidden = ok;
+  if (!ok) fix.textContent = (ytErr && !audio && ytIdx >= MUSIC_IDS.length)
+    ? 'YouTube laat deze muziek hier niet afspelen — zie README'
+    : 'Tik hier om de muziek te starten';
 }
-$('#music-fix').addEventListener('click', () => { startMusic(); $('#music-fix').hidden = true; });
-function musicVolume(v) { if (ytReady && !muted) try { yt.setVolume(v); } catch { /* */ } }
+$('#music-fix').addEventListener('click', (e) => { e.stopPropagation(); startMusic(); });
+function musicVolume(v) {
+  if (muted) return;
+  if (audio) audio.volume = v / 100;
+  else if (ytReady) try { yt.setVolume(v); } catch { /* */ }
+}
 function setMuted(m) {
   muted = m;
   $('#btn-mute').classList.toggle('off', m);
-  if (!ytReady) return;
-  if (m) yt.mute(); else { yt.unMute(); yt.playVideo(); }
+  if (audio) { audio.muted = m; if (!m) audio.play().catch(() => {}); }
+  else if (ytReady) { if (m) yt.mute(); else { yt.unMute(); yt.playVideo(); } }
+  updateMusicUi();
 }
-$('#btn-mute').addEventListener('click', () => setMuted(!muted));
+$('#btn-mute').addEventListener('click', () => { if (!musicWanted) startMusic(); else setMuted(!muted); });
 
 // ---------- home: login → montage → logo → welkom → menu ----------
 const home = $('#home');
@@ -152,7 +180,7 @@ async function prepareReel() {
       const pick = (re) => ds.find((d) => re.test(d.transcodekey || ''))?.src;
       const em = v.extmetadata || {};
       reelMeta[(norm[p.title] || p.title).replace(/^File:/, '')] = {
-        webm: small ? (pick(/360p\.vp9\.webm/) || pick(/480p\.vp9\.webm/)) : (pick(/480p\.vp9\.webm/) || pick(/360p\.vp9\.webm/)),
+        webm: small ? (pick(/480p\.vp9\.webm/) || pick(/360p\.vp9\.webm/)) : (pick(/1080p\.vp9\.webm/) || pick(/720p\.vp9\.webm/) || pick(/480p\.vp9\.webm/)),
         mp4: pick(/360p\.mpeg4/) || pick(/mp4/),
         artist: (em.Artist?.value || '').replace(/<[^>]+>/g, '').trim(),
         license: em.LicenseShortName?.value || '', page: v.descriptionurl,
@@ -171,7 +199,6 @@ async function prepareReel() {
 
 function buildReel() {
   const box = $('#reel-clips'); box.innerHTML = '';
-  $('#reel-bars').innerHTML = REEL.map(() => '<i><b></b></i>').join('');
   REEL.forEach((item) => {
     const el = document.createElement('div'); el.className = 'clip';
     const meta = item.file && reelMeta[item.file];
@@ -186,7 +213,7 @@ function buildReel() {
       el.appendChild(video);
     }
     const ph = photoBy[item.photo || item.player];
-    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; const big = ph.photo_url.replace(/\/(\d+)px-/, '/1280px-'); img.onerror = () => { if (img.src !== ph.photo_url) img.src = ph.photo_url; }; img.src = big; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
+    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; const tries = [1600, 1280, 960].map((w) => ph.photo_url.replace(/\/(\d+)px-/, `/${w}px-`)).concat(ph.photo_url); let ti = 0; img.onerror = () => { ti++; if (ti < tries.length) img.src = tries[ti]; }; img.src = tries[0]; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
     box.appendChild(el);
     reelItems.push({ el, item, video });
   });
@@ -225,9 +252,6 @@ function playReel() {
     setTimeout(() => {
       if (home.dataset.phase !== 'reel') return;
       showClip(i);
-      const bars = $$('#reel-bars i');
-      bars.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('run', k === i); });
-      bars[i].style.setProperty('--d', item.d + 's');
       const cap = $('#reel-cap');
       cap.querySelector('small').textContent = item.sub || '';
       cap.querySelector('span').textContent = item.name || '';
@@ -306,7 +330,7 @@ function openLogin() {
   $('#in-name').focus();
   $('#in-name').select();
 }
-$('#btn-login').addEventListener('click', openLogin);
+$('#btn-login').addEventListener('click', () => { unlockMusic(); openLogin(); });
 $('#login-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const n = $('#in-name').value.trim();
@@ -324,7 +348,7 @@ $('#login-form').addEventListener('submit', (e) => {
 document.addEventListener('keydown', (e) => {
   if (!home.classList.contains('active')) return;
   const p = home.dataset.phase;
-  if (p === 'login' && !$('#btn-login').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLogin(); }
+  if (p === 'login' && !$('#btn-login').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); unlockMusic(); openLogin(); }
   else if (p === 'welcome') { e.preventDefault(); toMenu(); }
 });
 home.addEventListener('click', (e) => { if (home.dataset.phase === 'welcome' && !e.target.closest('#btn-skip')) toMenu(); });

@@ -143,7 +143,14 @@ select { width: 100%; background: #0a0f1a; color: var(--text); border: 1px solid
 /* muziekkaartje */
 .music { position: fixed; left: 14px; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 10px; background: rgba(10,15,26,.9); border: 1px solid var(--line); border-radius: 14px; padding: 6px 10px 6px 6px; backdrop-filter: blur(10px); }
 .music-art { width: 64px; height: 36px; border-radius: 8px; overflow: hidden; background: #000; }
-.music-art iframe { width: 64px; height: 36px; display: block; pointer-events: none; }
+.music-art { display: grid; place-items: center; }
+.eq { display: flex; gap: 3px; align-items: flex-end; height: 20px; }
+.eq i { width: 4px; background: var(--lime); border-radius: 2px; height: 30%; animation: eq 0.9s ease-in-out infinite; }
+.eq i:nth-child(2) { animation-delay: -.3s; } .eq i:nth-child(3) { animation-delay: -.6s; } .eq i:nth-child(4) { animation-delay: -.15s; }
+@keyframes eq { 50% { height: 100%; } }
+.music-btn.off ~ * .eq i, .music:has(.music-btn.off) .eq i { animation-play-state: paused; }
+#yt-holder { position: fixed; left: 0; bottom: 0; width: 320px; height: 240px; z-index: 0; opacity: 0.01; pointer-events: none; }
+#yt-holder iframe { width: 320px; height: 240px; }
 .music-title { font-size: 12px; font-weight: 800; }
 .music-artist { font-size: 11px; color: var(--muted); }
 .music-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #151d2e; color: var(--lime); font-size: 16px; }
