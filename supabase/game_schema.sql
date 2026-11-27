@@ -129,8 +129,8 @@ begin
     photo_url = pl.photo_url,
     photo_credit = coalesce(nullif(pl.photo_author,''), 'Onbekend') || coalesce(' · ' || pl.photo_license, ''),
     hints = h,
-    round_start = now() + interval '3 seconds',
-    round_deadline = now() + interval '33 seconds',
+    round_start = now() + interval '4 seconds',
+    round_deadline = now() + interval '34 seconds',
     reveal_name = null, reveal_photo = null, round_winner = null, round_points = null,
     next_at = null, last_wrong = null, updated_at = now()
   where code = p_code;
