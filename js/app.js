@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795781109';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795781570';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -333,26 +333,36 @@ function startZoom() {
   geomLoop();
   setTimeout(() => { if (home.dataset.phase === 'zoom') phase('logo'); }, ZOOM_MS);
   // in de O blijven de fragmenten doorlopen
-  startLoop(2400);
+  startLoop(2400);   // tijdens het uitzoomen loopt het beeld nog even door
 }
 
-// houdt de ring en het videovenster precies op de O, ook tijdens het uitzoomen en omhoog schuiven
+// Uitzoomen door de O van "OFF": het schild start reuzegroot met de O over het hele scherm,
+// het videobeeld zit in de O en vervaagt naar zwart tegen dat de zoom klaar is.
+const O_RX = 19, O_RY = 28, O_SW = 10;            // maten van de O in het logo (SVG-eenheden)
 function geomLoop() {
   cancelAnimationFrame(geomRaf);
+  const wrap = $('#logo-wrap'), reel = $('#reel');
+  // oorsprong van de zoom = middelpunt van de O, gemeten zonder transform
+  wrap.style.transform = 'none';
+  const w0 = wrap.getBoundingClientRect(), o0 = $('#o-shape').getBoundingClientRect();
+  wrap.style.transformOrigin = `${o0.left - w0.left + o0.width / 2}px ${o0.top - w0.top + o0.height / 2}px`;
+  const innerW0 = o0.width * (O_RX - O_SW / 2) / O_RX;   // breedte van het gat in de O
+  const big = (Math.hypot(innerWidth, innerHeight) * 1.15) / Math.max(4, innerW0);
   const step = () => {
     const p = home.dataset.phase;
-    if (!['zoom', 'logo', 'welcome', 'menu'].includes(p) || !home.classList.contains('active')) { geomRaf = null; return; }
-    const r = $('#o-slot').getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const b = r.width * 0.17;                       // dikte van de O
+    if (!home.classList.contains('active')) { geomRaf = null; return; }
     let e = 1;
     if (p === 'zoom' && zoomStart != null) e = ease(Math.min(1, (performance.now() - zoomStart) / ZOOM_MS));
-    const big = Math.hypot(innerWidth, innerHeight) + b;
-    const rxo = big + (r.width / 2 - big) * e, ryo = big + (r.height / 2 - big) * e;
-    const rxi = Math.max(1, rxo - b), ryi = Math.max(1, ryo - b);
-    $('#reel').style.clipPath = `ellipse(${rxi}px ${ryi}px at ${cx}px ${cy}px)`;
-    const ring = $('#o-ring');
-    Object.assign(ring.style, { left: `${cx - rxo}px`, top: `${cy - ryo}px`, width: `${2 * rxo}px`, height: `${2 * ryo}px`, borderWidth: `${b}px` });
+    if (p === 'zoom' || p === 'logo' || p === 'welcome' || p === 'menu') {
+      const sc = big + (1 - big) * e;
+      wrap.style.transform = e >= 1 ? '' : `scale(${sc})`;
+      const r = $('#o-shape').getBoundingClientRect();
+      const k = r.width / (2 * O_RX);
+      const rx = (O_RX - O_SW / 2) * k, ry = (O_RY - O_SW / 2) * k;
+      reel.style.clipPath = `ellipse(${rx}px ${ry}px at ${r.left + r.width / 2}px ${r.top + r.height / 2}px)`;
+      reel.style.opacity = String(Math.max(0, 1 - Math.pow(e, 0.8)));
+      if (e >= 1 && p !== 'zoom') { stopReelLoop(); geomRaf = null; return; }
+    }
     geomRaf = requestAnimationFrame(step);
   };
   step();
@@ -364,7 +374,6 @@ function toMenu() {
   $('#btn-skip').hidden = true;
   phase('menu');
   if (!geomRaf) geomLoop();
-  if (!loopTimer) { showClip(shownIdx + 1); startLoop(2600); }
   musicVolume(70);
   loadOptions();
   const code = new URLSearchParams(location.search).get('room');
@@ -421,7 +430,7 @@ home.addEventListener('click', (e) => { if (home.dataset.phase === 'welcome' && 
 $('#btn-skip').addEventListener('click', (e) => { e.stopPropagation(); skipIntro(); });
 $('#btn-switch').addEventListener('click', () => {
   clearInterval(loopTimer); loopTimer = null;
-  $('#reel').style.clipPath = ''; $('#o-ring').style.width = '0';
+  $('#reel').style.clipPath = ''; $('#reel').style.opacity = ''; $('#logo-wrap').style.transform = '';
   $('#btn-login').hidden = true; $('#login-form').hidden = false;
   phase('login'); $('#in-name').select(); $('#in-name').focus();
 });
@@ -464,8 +473,7 @@ function stopReelLoop() {
 function backHome() {
   show('home');
   phase('menu');
-  geomLoop();
-  if (!loopTimer) { showClip(shownIdx + 1); startLoop(2600); }
+  $('#reel').style.opacity = '0';
 }
 
 async function loadOptions() {

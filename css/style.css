@@ -270,3 +270,16 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #home[data-phase="menu"] #btn-multi { animation-delay: .08s; }
 @keyframes rise { from { transform: translateY(30px) scale(.94); opacity: 0; } }
 .menu-view:not([hidden]) { animation: fadein .3s ease; }
+
+/* ---- schild-logo ---- */
+#logo-svg { display: block; height: min(46vh, 62vw); width: auto; overflow: visible; }
+#logo-wrap { will-change: transform; }
+#o-ring { display: none !important; }
+#welcome { margin-top: 4px; }
+#home[data-phase="reel"] #logo-wrap { opacity: 0; }
+#home[data-phase="menu"] #brand { transform: translateY(var(--brand-up, -24vh)) scale(.5); }
+@media (max-height: 640px) { #home[data-phase="menu"] #brand { transform: translateY(-28vh) scale(.42); } }
+/* in het menu: het stadionlicht van de achtergrond tonen */
+#home { transition: background .8s ease; }
+#home[data-phase="menu"] { background: transparent; }
+#home[data-phase="menu"] #reel { opacity: 0 !important; }
