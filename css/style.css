@@ -394,3 +394,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
   .scorebar .sc { font-size: 22px; }
 }
 .arena { grid-template-rows: minmax(0, 1fr); }
+/* verlaat-knop gewoon boven de rondeteller, niet buiten beeld */
+#game .exit-btn { position: static; transform: none; display: block; margin: 0 auto 6px; width: 28px; height: 28px; font-size: 12px; }
+#game .scorebar { margin-top: 4px; }
