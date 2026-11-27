@@ -22,6 +22,23 @@ export const HINT_TIMES = [8, 14, 20, 25];
 // Reservevideo's als de eerste niet ingesloten mag worden (Part 2 met Ravyn Lenae)
 export const MUSIC_FALLBACK_IDS = ['qZlvBI84mas'];
 
+// Na het intronummer: bekende FIFA-nummers in willekeurige volgorde (officiële YouTube-video's).
+// start = seconde waarop het nummer begint (sommige clips hebben een gesproken intro).
+export const PLAYLIST = [
+  { id: 'fe4EK4HSPkI', title: 'Kids', artist: 'MGMT' },
+  { id: 'UtF6Jej8yb4', title: 'The Nights', artist: 'Avicii' },
+  { id: 'mRD0-GxqHVo', title: 'Heat Waves', artist: 'Glass Animals' },
+  { id: 'w869Avr_fXI', title: 'Jerk It Out', artist: 'Caesars' },
+  { id: 'lk5iMgG-WJI', title: 'Club Foot', artist: 'Kasabian' },
+  { id: 'yYDmaexVHic', title: 'Rhinestone Eyes', artist: 'Gorillaz' },
+  { id: 'NSD11dnphg0', title: 'Fools Gold', artist: 'The Stone Roses' },
+  { id: 'SetClFl10cQ', title: 'Beat 54 (All Good Now)', artist: 'Jungle' },
+  { id: 'F1B9Fk_SgI0', title: 'Feels Like Summer', artist: 'Childish Gambino' },
+  { id: 'SSbBvKaM6sk', title: 'Song 2', artist: 'Blur' },
+  { id: 'Dv7vr6oE3U8', title: 'Red Morning Light', artist: 'Kings of Leon' },
+  { id: 'FMrIy9zm7QY', title: 'The Rockafeller Skank', artist: 'Fatboy Slim' },
+];
+
 // Intro-montage: echte, vrij gelicentieerde beelden van Wikimedia Commons (CC BY 3.0, Real Madrid C.F.).
 // t = startseconde in de video, d = duur van het fragment in seconden. Uitgekozen uit
 // "THANK YOU, CRISTIANO RONALDO" (Real Madrid): dribbels, goals en vieringen.

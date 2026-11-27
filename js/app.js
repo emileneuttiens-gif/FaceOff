@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795785144';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795785567';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -103,17 +103,18 @@ window.onYouTubeIframeAPIReady = () => {
     events: {
       onReady: () => { ytReady = true; if (musicWanted && !audio) startMusic(); },
       onStateChange: (e) => {
-        if (e.data === YT.PlayerState.ENDED) { yt.seekTo(MUSIC_START_SECONDS, true); yt.playVideo(); }
-        if (e.data === YT.PlayerState.PLAYING) updateMusicUi();
+        if (e.data === YT.PlayerState.ENDED) { if (musicWanted) nextTrack(); }
+        if (e.data === YT.PlayerState.PLAYING) { plFails = 0; updateMusicUi(); }
       },
       onError: (e) => {
+        if (plMode) { if (++plFails < PLAYLIST.length) nextTrack(); else updateMusicUi(); return; }
         ytErr = e.data;
         ytIdx++;
         if (ytIdx < MUSIC_IDS.length) {
           yt.loadVideoById({ videoId: MUSIC_IDS[ytIdx], startSeconds: MUSIC_START_SECONDS });
         } else {
           console.warn('YouTube-muziek geblokkeerd, foutcode', e.data);
-          updateMusicUi();
+          if (musicWanted) nextTrack(); else updateMusicUi();
         }
       },
     },
@@ -140,24 +141,60 @@ function startMusic() {
     audio.currentTime = MUSIC_START_SECONDS; audio.volume = 0; audio.muted = false;
     audio.play().catch(() => {});
   } else if (ytReady) {
-    try { yt.seekTo(MUSIC_START_SECONDS, true); yt.unMute(); yt.setVolume(0); yt.playVideo(); } catch { /* */ }
+    try { if (!plMode) yt.seekTo(MUSIC_START_SECONDS, true); yt.unMute(); yt.setVolume(0); yt.playVideo(); } catch { /* */ }
   }
   fadeIn(1000);
   setTimeout(updateMusicUi, 1500);
   setTimeout(updateMusicUi, 4000);
 }
 // zacht aanzwellen zodat de muziek niet abrupt binnenvalt
-let fadeTimer = null;
+let fadeTimer = null, targetVol = 100;
 function fadeIn(ms) {
   clearInterval(fadeTimer);
   const t0 = performance.now();
   fadeTimer = setInterval(() => {
     const f = Math.min(1, (performance.now() - t0) / ms);
-    const v = Math.round(100 * f * f);
+    const v = Math.round(targetVol * f * f);
     if (audio) audio.volume = v / 100; else if (ytReady) try { yt.setVolume(v); } catch { /* */ }
     if (f >= 1) clearInterval(fadeTimer);
   }, 40);
 }
+// ---- playlist: na het intronummer volgen de FIFA-nummers, met een korte overgang ----
+let plQueue = [], plMode = false, plFails = 0, xfading = false, lastTrack = null;
+function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function setNowPlaying(t) {
+  $('#music .music-title').textContent = t.title;
+  $('#music .music-artist').textContent = t.artist;
+}
+function nextTrack() {
+  if (!ytReady || !PLAYLIST.length) return;
+  if (!plQueue.length) { plQueue = shuffled(PLAYLIST); if (plQueue[0].id === lastTrack && plQueue.length > 1) plQueue.push(plQueue.shift()); }
+  const t = plQueue.shift();
+  lastTrack = t.id; plMode = true; xfading = false;
+  clearInterval(fadeTimer);
+  setNowPlaying(t);
+  try { yt.setVolume(0); yt.loadVideoById({ videoId: t.id, startSeconds: t.start || 0 }); } catch { /* */ }
+  fadeIn(1500);
+}
+function fadeOutThen(ms, done) {
+  clearInterval(fadeTimer);
+  const t0 = performance.now(), from = targetVol;
+  fadeTimer = setInterval(() => {
+    const f = Math.min(1, (performance.now() - t0) / Math.max(1, ms));
+    try { yt.setVolume(Math.round(from * (1 - f))); } catch { /* */ }
+    if (f >= 1) { clearInterval(fadeTimer); done(); }
+  }, 40);
+}
+// net voor het einde van een nummer uitfaden en het volgende starten
+setInterval(() => {
+  if (audio || !ytReady || !musicWanted || xfading) return;
+  try {
+    if (yt.getPlayerState() !== YT.PlayerState.PLAYING) return;
+    const d = yt.getDuration(), c = yt.getCurrentTime();
+    if (d > 30 && d - c < 2.6) { xfading = true; fadeOutThen(muted ? 0 : 2200, nextTrack); }
+  } catch { /* */ }
+}, 250);
+
 function updateMusicUi() {
   if (!musicWanted || muted) { $('#music-fix').hidden = true; return; }
   const ok = musicPlaying();
@@ -169,7 +206,8 @@ function updateMusicUi() {
 }
 $('#music-fix').addEventListener('click', (e) => { e.stopPropagation(); startMusic(); });
 function musicVolume(v) {
-  if (muted) return;
+  targetVol = v;
+  if (muted || xfading) return;
   if (audio) audio.volume = v / 100;
   else if (ytReady) try { yt.setVolume(v); } catch { /* */ }
 }
