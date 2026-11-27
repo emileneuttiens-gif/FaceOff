@@ -482,3 +482,6 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #home[data-phase="reel"], #home[data-phase="zoom"] { background: transparent; }
 #home[data-phase="reel"] #reel, #home[data-phase="zoom"] #reel { background: transparent; }
 .intro-vid { background: transparent; }
+/* gat in de O: tijdens het uitzoomen open, daarna dezelfde tint als het schild */
+#o-fill { opacity: 0; transition: opacity .6s ease .2s; }
+#home[data-phase="logo"] #o-fill, #home[data-phase="welcome"] #o-fill, #home[data-phase="menu"] #o-fill { opacity: 1; }
