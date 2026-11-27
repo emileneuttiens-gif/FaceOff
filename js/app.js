@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800852';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795801750';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -479,15 +479,27 @@ function openLogin() {
   $('#in-name').select();
 }
 $('#btn-login').addEventListener('click', () => { unlockMusic(); openLogin(); });
-// naam live op het shirt: je typt rechtstreeks op de rug, lange namen krimpen mee
+// naam live op de rug: tekst langs de schouders, vervormd door de stof (SVG-filter), blinkend streepje
 function paintShirt() {
-  const i = $('#in-name');
-  const w = i.clientWidth || 300;
-  let size = w * 0.2;
-  i.style.fontSize = size + 'px';
-  for (let k = 0; k < 30 && i.scrollWidth > i.clientWidth + 1 && size > 12; k++) { size *= 0.92; i.style.fontSize = size + 'px'; }
+  const v = $('#in-name').value.replace(/\s+/g, ' ').toUpperCase();
+  const t = $('#rug-name'), txt = $('#rug-text'), caret = $('#rug-caret');
+  t.textContent = v;
+  let size = 92; txt.setAttribute('font-size', size);
+  try {
+    const maxW = 600;
+    const w = txt.getComputedTextLength();
+    if (w > maxW) { size = Math.max(40, size * maxW / w); txt.setAttribute('font-size', size.toFixed(1)); }
+    // streepje achter de laatste letter (of in het midden als het leeg is)
+    let x = 836, y = 293;
+    if (v.length) { const p = txt.getEndPositionOfChar(v.length - 1); x = p.x + 8; y = p.y; }
+    caret.setAttribute('height', (size * 0.84).toFixed(1));
+    caret.setAttribute('x', x.toFixed(1));
+    caret.setAttribute('y', (y - size * 0.8).toFixed(1));
+  } catch { /* */ }
+  $('#login-form .btn-start').disabled = v.trim().length < 2;
 }
-addEventListener('resize', paintShirt);
+document.fonts?.ready?.then(paintShirt);
+$('#login').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#in-name').focus(); });
 $('#in-name').addEventListener('input', paintShirt);
 let musicUnlocked = false;
 const unlockOnce = () => { if (!musicUnlocked) { musicUnlocked = true; unlockMusic(); } };

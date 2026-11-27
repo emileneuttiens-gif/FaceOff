@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795800852">
+  <link rel="stylesheet" href="css/style.css?v=1795801750">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -47,36 +47,33 @@
       <div class="login-logo">FACE<span>OFF</span></div>
       <div id="invite-banner" class="invite-banner" hidden><span class="ib-k">Uitdaging</span><span><b id="inv-host"></b> daagt je uit voor een FaceOff</span><span class="ib-s">Geef je naam en je zit meteen in de kamer</span></div>
       <form id="login-form" autocomplete="off">
-        <div class="shirt-wrap">
-          <div class="shirt-ring r1"></div><div class="shirt-ring r2"></div>
-          <svg id="shirt" viewBox="-12 0 424 440" aria-hidden="true">
-            <defs>
-              <linearGradient id="sh-base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b59"/><stop offset=".55" stop-color="#ec2f3e"/><stop offset="1" stop-color="#c81c2a"/></linearGradient>
-              <linearGradient id="sh-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".38"/><stop offset=".2" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".07"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient>
-              <linearGradient id="sh-fold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".48" stop-color="#000" stop-opacity="0"/><stop offset=".52" stop-color="#000" stop-opacity=".14"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset=".7" stop-color="#000" stop-opacity="0"/></linearGradient>
-              <filter id="sh-tex" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer><feComposite in2="SourceGraphic" operator="in"/></filter>
-              <clipPath id="sh-clip"><path id="sh-path" d="M120 44 Q200 68 280 44 L350 68 Q382 80 394 110 L408 190 L336 208 L320 170 L322 412 Q200 432 78 412 L80 170 L64 208 L-8 190 L6 110 Q18 80 50 68 Z"/></clipPath>
-            </defs>
-            <g clip-path="url(#sh-clip)">
-              <rect x="-12" y="0" width="424" height="440" fill="url(#sh-base)"/>
-              <rect x="70" y="0" width="260" height="440" fill="url(#sh-side)"/>
-              <rect x="-12" y="0" width="424" height="440" fill="url(#sh-fold)"/>
-              <path d="M64 208 L-8 190 L-2 160 L70 176 Z M336 208 L408 190 L402 160 L330 176 Z" fill="#141317"/>
-              <path d="M-2 160 L70 176 M402 160 L330 176" stroke="#fff" stroke-opacity=".5" stroke-width="3"/>
-              <path d="M80 170 Q72 120 58 70 M320 170 Q328 120 342 70" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
-              <path d="M78 400 Q200 420 322 400" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="2" stroke-dasharray="4 4"/>
-              <rect x="-12" y="0" width="424" height="440" fill="#fff" filter="url(#sh-tex)"/>
-            </g>
-            <path d="M120 44 Q200 68 280 44" fill="none" stroke="#141317" stroke-width="14" stroke-linecap="round"/>
-            <path d="M120 44 Q200 68 280 44" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2" transform="translate(0 6)"/>
-            <use href="#sh-path" fill="none" stroke="#0e0e10" stroke-width="3" stroke-linejoin="round"/>
-          </svg>
-          <input id="in-name" maxlength="14" placeholder="JOUW NAAM" autocomplete="nickname" enterkeyhint="go" aria-label="Jouw naam" spellcheck="false">
-        </div>
-        <button type="submit" class="btn-start">SPELEN</button>
+        <svg id="rug" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <!-- de naam volgt de plooien van de stof en krijgt het licht van de foto mee -->
+            <filter id="print" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941" color-interpolation-filters="sRGB">
+              <feImage href="media/login-rug.jpg" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" result="foto"/>
+              <feColorMatrix in="foto" type="luminanceToAlpha" result="lumA"/>
+              <feColorMatrix in="foto" type="matrix" values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  .2126 .7152 .0722 0 0" result="lum"/>
+              <feGaussianBlur in="foto" stdDeviation="1.2" result="fotoZacht"/>
+              <feDisplacementMap in="SourceGraphic" in2="fotoZacht" scale="9" xChannelSelector="R" yChannelSelector="G" result="vervormd"/>
+              <feColorMatrix in="foto" type="matrix" values=".2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  0 0 0 1 0" result="grijs"/>
+              <feComponentTransfer in="grijs" result="licht"><feFuncR type="linear" slope="4.2" intercept=".42"/><feFuncG type="linear" slope="4.2" intercept=".42"/><feFuncB type="linear" slope="4.2" intercept=".42"/></feComponentTransfer>
+              <feBlend in="vervormd" in2="licht" mode="multiply" result="belicht"/>
+              <feComposite in="belicht" in2="vervormd" operator="in" result="opdruk"/>
+              <feGaussianBlur in="opdruk" stdDeviation=".45"/>
+            </filter>
+            <path id="rug-arc" d="M520 318 Q836 268 1152 318"/>
+          </defs>
+          <image href="media/login-rug.jpg" x="0" y="0" width="1672" height="941" preserveAspectRatio="none"/>
+          <text id="rug-text" fill="#d81f2e" font-family="Anton, sans-serif" font-size="92" letter-spacing="7" filter="url(#print)"><textPath id="rug-name" href="#rug-arc" startOffset="50%" text-anchor="middle"></textPath></text>
+          <rect id="rug-caret" width="5" height="78" rx="2" fill="#d81f2e" opacity=".9"/>
+          <rect x="0" y="600" width="1672" height="341" fill="url(#rug-fade)"/>
+          <linearGradient id="rug-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050506" stop-opacity="0"/><stop offset="1" stop-color="#050506" stop-opacity=".8"/></linearGradient>
+        </svg>
+        <input id="in-name" maxlength="14" autocomplete="nickname" enterkeyhint="go" aria-label="Jouw naam" spellcheck="false" autocapitalize="characters">
+        <button type="submit" class="btn-start" disabled>SPELEN</button>
       </form>
       <button id="btn-login" hidden>LOGIN</button>
-      <p class="intro-tip">Zet je geluid aan</p>
     </div>
 
     <!-- menu -->
@@ -239,6 +236,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795800852"></script>
+  <script type="module" src="js/app.js?v=1795801750"></script>
 </body>
 </html>
