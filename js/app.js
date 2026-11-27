@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795789223';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795791019';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -351,7 +351,7 @@ function buildCredits() {
     if (r.file && reelMeta[r.file] && !seen.has(r.file)) { seen.add(r.file); const m = reelMeta[r.file]; rows.push(`<a href="${esc(m.page)}" target="_blank" rel="noopener">${esc(r.file.replace(/\.(webm|ogv)$/, ''))}</a> — ${esc(m.artist)} (${esc(m.license)})`); }
     const ph = photoBy[r.photo]; if (ph && !seen.has(ph.photo_url)) { seen.add(ph.photo_url); rows.push(`Foto ${esc(ph.name)} — ${esc(ph.photo_author || '')} (${esc(ph.photo_license || '')})`); }
   }
-  rows.push('Achtergrond: Arda Güler — LawEnthusiast; Lionel Messi, Cristiano Ronaldo, Luka Modrić, Nico Paz — Bryan Berlin (allen CC BY-SA 4.0, Wikimedia Commons).');
+  rows.push('Achtergrond: Lionel Messi, Cristiano Ronaldo, Luka Modrić, Nico Paz — Bryan Berlin (allen CC BY-SA 4.0, Wikimedia Commons).');
   rows.push('Spelersfoto\'s: Wikimedia Commons, fotograaf en licentie staan onder elke foto in het spel.');
   rows.push('Muziek: Joy Crookes — Feet Don\'t Fail Me Now (via YouTube).');
   $('#credits').innerHTML = rows.join('<br>');
