@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795802035';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795802432';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -266,7 +266,7 @@ async function prepareReel() {
 // ---- intro: één vooraf gemonteerde video (fade uit zwart, harde cuts, scherp), ----
 // ---- al volledig geladen terwijl je je naam typt: geen zwart gat, geen haperen.  ----
 const INTRO_SRC = (Math.max(screen.width, screen.height) * (devicePixelRatio || 1) >= 1700 && !navigator.connection?.saveData)
-  ? 'media/intro-1080.mp4?v=2' : 'media/intro-720.mp4?v=2';
+  ? 'media/intro-1080.mp4?v=3' : 'media/intro-720.mp4?v=3';
 const introVid = document.createElement('video');
 introVid.muted = true; introVid.playsInline = true; introVid.preload = 'auto';
 introVid.setAttribute('muted', ''); introVid.setAttribute('playsinline', '');
@@ -275,10 +275,53 @@ $('#reel-clips').appendChild(introVid);
 fetch(INTRO_SRC).then((r) => (r.ok ? r.blob() : Promise.reject()))
   .then((b) => { if (!introVid.src) { introVid.src = URL.createObjectURL(b); introVid.load(); } })
   .catch(() => { if (!introVid.src) introVid.src = INTRO_SRC; });
-function playIntroVideo() {
+// eerste beeld: Ronaldo's zwarte shirt; de camera komt uit de stof (6x ingezoomd) en zoomt uit
+const VID_FABRIC = { x: 0.15, y: 0.72 };   // punt op zijn shirt, in de video (0..1)
+function playIntroVideo(fromShirt) {
   if (!introVid.src) introVid.src = INTRO_SRC;          // nog niet volledig binnen: dan streamen
   try { introVid.currentTime = 0; } catch { /* */ }
+  introVid.style.transition = 'none';
+  introVid.style.filter = '';
+  if (fromShirt) {
+    // waar ligt dat punt op het scherm (object-fit: contain of cover)?
+    const W = innerWidth, H = innerHeight, vr = 1920 / 816;
+    const cover = getComputedStyle(introVid).objectFit === 'cover';
+    let cw = W, ch = W / vr;
+    if (cover ? ch < H : ch > H) { ch = H; cw = H * vr; }
+    const ox = (W - cw) / 2 + VID_FABRIC.x * cw, oy = (H - ch) / 2 + VID_FABRIC.y * ch;
+    introVid.style.transformOrigin = `${ox}px ${oy}px`;
+    introVid.style.transform = 'scale(6)';
+    introVid.style.filter = 'blur(6px)';
+    void introVid.offsetWidth;
+    introVid.style.transition = 'transform 1.7s cubic-bezier(.15,.75,.2,1), filter 1.1s ease-out';
+    requestAnimationFrame(() => { introVid.style.transform = 'scale(1)'; introVid.style.filter = 'blur(0)'; });
+  } else {
+    introVid.style.transform = '';
+  }
   introVid.play().catch(() => {});
+}
+function resetShirt() {
+  const rug = $('#rug'); rug.classList.remove('stamp');
+  rug.style.transition = 'none'; rug.style.transform = ''; rug.style.filter = '';
+  $('#login-form .btn-start').style.opacity = '';
+}
+// SPELEN: de naam wordt erop gedrukt, dan vliegt de camera de stof in
+function flyIntoShirt() {
+  return new Promise((done) => {
+    const rug = $('#rug');
+    rug.classList.add('stamp');
+    const btn = $('#login-form .btn-start'); btn.style.opacity = '0';
+    setTimeout(() => {
+      // punt net onder de naam, midden van de rug (in beeldcoördinaten van de foto)
+      const r = rug.getBoundingClientRect(), s = Math.max(r.width / 1672, r.height / 941);
+      const ox = r.width / 2 + (836 - 836) * s, oy = r.height / 2 + (520 - 470.5) * s;
+      rug.style.transformOrigin = `${ox}px ${oy}px`;
+      rug.style.transition = 'transform 1.05s cubic-bezier(.55,0,.85,.35), filter 1.05s ease-in';
+      rug.style.transform = 'scale(9)';
+      rug.style.filter = 'blur(5px) brightness(.7)';
+      setTimeout(done, 900);
+    }, 320);
+  });
 }
 
 // Drie video-spelers die om beurt het volgende fragment klaarzetten (laden + spoelen).
@@ -383,11 +426,12 @@ function syncIntro() {
 
 function flash() { const fl = $('#reel-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on'); }
 
-function playReel() {
+function playReel(fromShirt) {
   phase('reel');
   $('#btn-skip').hidden = false;
   introT0 = performance.now();
-  playIntroVideo();
+  playIntroVideo(fromShirt);
+  setTimeout(resetShirt, 800);
   clearInterval(syncTimer);
   syncTimer = setInterval(syncIntro, 50);
 }
@@ -525,7 +569,7 @@ $('#login-form').addEventListener('submit', (e) => {
       .catch((err) => { toast(err.message || 'Deze kamer is niet meer beschikbaar'); inviteOk = false; playReel(); });
     return;
   }
-  playReel();
+  flyIntoShirt().then(() => playReel(true));
 });
 document.addEventListener('keydown', (e) => {
   if (!home.classList.contains('active')) return;
