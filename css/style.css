@@ -397,3 +397,14 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 /* verlaat-knop gewoon boven de rondeteller, niet buiten beeld */
 #game .exit-btn { position: static; transform: none; display: block; margin: 0 auto 6px; width: 28px; height: 28px; font-size: 12px; }
 #game .scorebar { margin-top: 4px; }
+
+/* ---- legendes op de achtergrond (logo -> menu) ---- */
+#legends { position: absolute; top: 0; bottom: 0; left: -12%; right: -12%; display: flex; gap: 6px; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; }
+#legends .lg { position: relative; flex: 1; overflow: hidden; transform: skewX(-12deg) translateY(40px); opacity: 0; transition: transform 1.4s cubic-bezier(.2,.8,.2,1), opacity 1.4s ease; }
+#legends .lg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14,14,16,.15) 0%, rgba(14,14,16,.55) 55%, rgba(14,14,16,.95) 100%); }
+#legends img { position: absolute; top: 0; left: -40%; width: 180%; height: 100%; object-fit: cover; transform: skewX(12deg); filter: grayscale(.35) contrast(1.05) blur(1.5px); }
+#home[data-phase="welcome"] #legends, #home[data-phase="menu"] #legends { opacity: .32; }
+#home[data-phase="welcome"] #legends .lg, #home[data-phase="menu"] #legends .lg { transform: skewX(-12deg); opacity: 1; }
+#legends .lg:nth-child(1) { transition-delay: 0s; } #legends .lg:nth-child(2) { transition-delay: .12s; } #legends .lg:nth-child(3) { transition-delay: .24s; } #legends .lg:nth-child(4) { transition-delay: .36s; } #legends .lg:nth-child(5) { transition-delay: .48s; }
+#legends .lg + .lg { box-shadow: -3px 0 0 rgba(255,59,74,.35); }
+@media (max-width: 700px) { #legends { left: -30%; right: -30%; } }
