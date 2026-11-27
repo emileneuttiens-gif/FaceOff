@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_START_SECONDS, HINT_TIMES } from './config.js';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, HINT_TIMES, REEL } from './config.js';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -26,6 +26,7 @@ const leagueName = (n) => LEAGUE_NAMES[n] || n;
 
 function show(id) {
   $$('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+  if (id !== 'home' && typeof stopReelLoop === 'function') stopReelLoop();
   document.body.classList.toggle('in-game', id === 'game');
 }
 
@@ -68,94 +69,277 @@ const sfx = {
 };
 
 // ---------- muziek (YouTube) ----------
-let yt = null, ytReady = false, muted = localStorage.getItem('fo_muted') === '1';
+// De speler start meteen gedempt (mag zonder klik). Zo is een eventuele advertentie al
+// voorbij en zit de video in de "spelen"-stand. Bij Enter (een echte klik/toets) zetten we
+// het geluid aan en springen we naar het begin van het nummer.
+const MUSIC_IDS = [MUSIC_VIDEO_ID, ...MUSIC_FALLBACK_IDS];
+let yt = null, ytReady = false, ytIdx = 0, musicWanted = false, muted = false;
 window.onYouTubeIframeAPIReady = () => {
   yt = new YT.Player('yt', {
-    width: 64, height: 36, videoId: MUSIC_VIDEO_ID,
-    playerVars: { start: MUSIC_START_SECONDS, controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1, loop: 1, playlist: MUSIC_VIDEO_ID },
-    events: { onReady: () => { ytReady = true; yt.setVolume(70); } },
+    width: 64, height: 36, videoId: MUSIC_IDS[0],
+    playerVars: { autoplay: 1, mute: 1, start: MUSIC_START_SECONDS, controls: 0, disablekb: 1, playsinline: 1, rel: 0, iv_load_policy: 3, origin: location.origin },
+    events: {
+      onReady: () => {
+        ytReady = true;
+        try { if (!musicWanted) yt.mute(); yt.playVideo(); } catch { /* */ }
+        if (musicWanted) startMusic();
+      },
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.ENDED) { yt.seekTo(MUSIC_START_SECONDS, true); yt.playVideo(); }
+      },
+      onError: () => {
+        ytIdx++;
+        if (ytIdx < MUSIC_IDS.length) {
+          yt.loadVideoById({ videoId: MUSIC_IDS[ytIdx], startSeconds: MUSIC_START_SECONDS });
+          if (musicWanted) setTimeout(startMusic, 300); else yt.mute();
+        }
+      },
+    },
   });
 };
 if (window.YT && window.YT.Player) window.onYouTubeIframeAPIReady();
 
-function musicPlay() {
-  $('#music').hidden = false;
-  if (!ytReady || muted) return;
-  try { yt.playVideo(); } catch { /* */ }
+// moet binnen een klik/toets-handler aangeroepen worden
+function startMusic() {
+  musicWanted = true; muted = false;
+  $('#btn-mute').classList.remove('off');
+  if (!ytReady) return;
+  try {
+    yt.seekTo(MUSIC_START_SECONDS, true);
+    yt.unMute(); yt.setVolume(100); yt.playVideo();
+  } catch { /* */ }
+  // vangnet: speelt het toch niet (bv. iPhone), toon dan een duidelijke knop
+  setTimeout(checkMusic, 1800);
 }
-function musicVolume(v) { if (ytReady) try { yt.setVolume(v); } catch { /* */ } }
+function checkMusic() {
+  if (!ytReady || muted) return;
+  let ok = false;
+  try { ok = yt.getPlayerState() === YT.PlayerState.PLAYING && !yt.isMuted(); } catch { /* */ }
+  $('#music-fix').hidden = ok;
+}
+$('#music-fix').addEventListener('click', () => { startMusic(); $('#music-fix').hidden = true; });
+function musicVolume(v) { if (ytReady && !muted) try { yt.setVolume(v); } catch { /* */ } }
 function setMuted(m) {
-  muted = m; localStorage.setItem('fo_muted', m ? '1' : '0');
+  muted = m;
   $('#btn-mute').classList.toggle('off', m);
   if (!ytReady) return;
-  if (m) yt.pauseVideo(); else yt.playVideo();
+  if (m) yt.mute(); else { yt.unMute(); yt.playVideo(); }
 }
 $('#btn-mute').addEventListener('click', () => setMuted(!muted));
-$('#btn-mute').classList.toggle('off', muted);
 
-// ---------- intro ----------
-let introFaces = [];
-rpc('intro_faces').then((f) => {
-  introFaces = (f || []).filter((x) => x.photo);
-  introFaces.forEach((x) => { const i = new Image(); i.referrerPolicy = 'no-referrer'; i.src = x.photo; });
-}).catch(() => {});
+// ---------- home: login → montage → logo → welkom → menu ----------
+const home = $('#home');
+const phase = (p) => { home.dataset.phase = p; $('#music').classList.toggle('dim', ['reel', 'zoom', 'logo', 'welcome'].includes(p)); };
+const reelItems = [];      // { el, kind, item, video? }
+let reelMeta = {};         // bestandsnaam -> { webm, mp4, artist, license, page }
+let photoBy = {};          // spelersnaam -> foto-url
+let zoomStart = null, geomRaf = null, loopTimer = null;
+const ZOOM_MS = 1800;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-let introDone = false;
-$('#btn-start').addEventListener('click', () => {
-  // niet wachten op fullscreen: sommige browsers beantwoorden die vraag nooit
-  try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}); } catch { /* */ }
-  musicPlay();
-  playIntro();
-});
-$('#btn-skip').addEventListener('click', endIntro);
+async function prepareReel() {
+  // video-URL's en licenties ophalen bij Wikimedia Commons
+  const files = [...new Set(REEL.filter((r) => r.file).map((r) => r.file))];
+  try {
+    const url = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=videoinfo&viprop=url|extmetadata|derivatives&titles='
+      + encodeURIComponent(files.map((f) => 'File:' + f).join('|'));
+    const j = await fetch(url).then((r) => r.json());
+    const norm = {}; (j.query.normalized || []).forEach((n) => { norm[n.to] = n.from; });
+    const small = innerWidth < 700;
+    for (const p of Object.values(j.query.pages)) {
+      const v = p.videoinfo?.[0]; if (!v) continue;
+      const ds = v.derivatives || [];
+      const pick = (re) => ds.find((d) => re.test(d.transcodekey || ''))?.src;
+      const em = v.extmetadata || {};
+      reelMeta[(norm[p.title] || p.title).replace(/^File:/, '')] = {
+        webm: small ? (pick(/360p\.vp9\.webm/) || pick(/480p\.vp9\.webm/)) : (pick(/480p\.vp9\.webm/) || pick(/360p\.vp9\.webm/)),
+        mp4: pick(/360p\.mpeg4/) || pick(/mp4/),
+        artist: (em.Artist?.value || '').replace(/<[^>]+>/g, '').trim(),
+        license: em.LicenseShortName?.value || '', page: v.descriptionurl,
+      };
+    }
+  } catch { /* zonder video's: foto's als reserve */ }
+  // reservefoto's uit onze eigen database
+  try {
+    const names = [...new Set(REEL.map((r) => r.player || r.photo).filter(Boolean))];
+    const { data } = await sb.from('players').select('name,photo_url,photo_author,photo_license,photo_page').in('name', names);
+    (data || []).forEach((p) => { photoBy[p.name] = p; });
+  } catch { /* */ }
+  buildReel();
+  buildCredits();
+}
 
-function playIntro() {
-  $('.intro-idle').hidden = true;
-  $('.intro-show').hidden = false;
-  $('#btn-skip').hidden = false;
-  const stage = $('#intro-stage');
-  const faces = introFaces.slice(0, 10);
-  const beat = 620;
-  let t = 300;
-  faces.forEach((f, i) => {
-    setTimeout(() => {
-      if (introDone) return;
-      const prev = stage.querySelector('.iface.in');
-      if (prev) { prev.classList.remove('in'); prev.classList.add(i % 2 ? 'side-l' : 'side-r'); setTimeout(() => prev.remove(), 1400); }
-      const el = document.createElement('div');
-      el.className = 'iface';
-      el.innerHTML = `<img src="${esc(f.photo)}" referrerpolicy="no-referrer" alt=""><div class="cap"><small>${esc(f.club || '')}</small>${esc(f.name)}</div>`;
-      stage.appendChild(el);
-      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
-      if (i % 2 === 0) { const fl = $('#intro-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on'); }
-    }, t);
-    t += beat;
+function buildReel() {
+  const box = $('#reel-clips'); box.innerHTML = '';
+  $('#reel-bars').innerHTML = REEL.map(() => '<i><b></b></i>').join('');
+  REEL.forEach((item) => {
+    const el = document.createElement('div'); el.className = 'clip';
+    const meta = item.file && reelMeta[item.file];
+    let video = null;
+    if (meta && (meta.webm || meta.mp4)) {
+      video = document.createElement('video');
+      video.muted = true; video.playsInline = true; video.preload = 'auto'; video.loop = true;
+      video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
+      if (meta.webm) video.insertAdjacentHTML('beforeend', `<source src="${esc(meta.webm)}#t=${item.t}" type="video/webm">`);
+      if (meta.mp4) video.insertAdjacentHTML('beforeend', `<source src="${esc(meta.mp4)}#t=${item.t}" type="video/mp4">`);
+      video.addEventListener('loadedmetadata', () => { try { video.currentTime = item.t; } catch { /* */ } }, { once: true });
+      el.appendChild(video);
+    }
+    const ph = photoBy[item.photo || item.player];
+    if (ph) { const img = new Image(); img.referrerPolicy = 'no-referrer'; img.src = ph.photo_url; img.alt = ''; img.hidden = !!video; el.appendChild(img); }
+    box.appendChild(el);
+    reelItems.push({ el, item, video });
   });
-  setTimeout(() => {
-    if (introDone) return;
-    stage.querySelectorAll('.iface').forEach((e) => e.classList.add('out'));
-    $('#intro-final').classList.add('slam');
-    const fl = $('#intro-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
-  }, t + 200);
-  setTimeout(() => { if (!introDone) $('.intro-show').classList.add('fadeout'); }, t + 2600);
-  setTimeout(endIntro, t + 3800);
 }
 
-function endIntro() {
-  if (introDone) return;
-  introDone = true;
-  $('#intro').classList.remove('active');
-  $('#intro').style.display = 'none';
-  musicPlay();
-  afterIntro();
+function buildCredits() {
+  const seen = new Set(); const rows = [];
+  for (const r of REEL) {
+    if (r.file && reelMeta[r.file] && !seen.has(r.file)) { seen.add(r.file); const m = reelMeta[r.file]; rows.push(`<a href="${esc(m.page)}" target="_blank" rel="noopener">${esc(r.file.replace(/\.(webm|ogv)$/, ''))}</a> — ${esc(m.artist)} (${esc(m.license)})`); }
+    const ph = photoBy[r.photo]; if (ph && !seen.has(ph.photo_url)) { seen.add(ph.photo_url); rows.push(`Foto ${esc(ph.name)} — ${esc(ph.photo_author || '')} (${esc(ph.photo_license || '')})`); }
+  }
+  rows.push('Spelersfoto\'s: Wikimedia Commons, fotograaf en licentie staan onder elke foto in het spel.');
+  rows.push('Muziek: Joy Crookes — Feet Don\'t Fail Me Now (via YouTube).');
+  $('#credits').innerHTML = rows.join('<br>');
 }
+
+function showClip(i) {
+  reelItems.forEach((r, k) => { if (k !== i) { r.el.classList.remove('on'); if (r.video && r.video !== reelItems[i]?.video) setTimeout(() => { if (!r.el.classList.contains('on')) r.video.pause(); }, 300); } });
+  const r = reelItems[i]; if (!r) return;
+  const useVideo = r.video && r.video.readyState >= 2;
+  if (r.video) {
+    r.video.hidden = !useVideo;
+    const img = r.el.querySelector('img'); if (img) img.hidden = useVideo;
+    if (useVideo) { try { r.video.currentTime = r.item.t; r.video.play(); } catch { /* */ } }
+  }
+  r.el.classList.remove('on'); void r.el.offsetWidth; r.el.classList.add('on');
+  // zonder video én zonder foto: sla over door de vorige te laten staan
+  if (!useVideo && !r.el.querySelector('img')) r.el.classList.remove('on');
+}
+
+function playReel() {
+  phase('reel');
+  $('#btn-skip').hidden = false;
+  let t = 0;
+  REEL.forEach((item, i) => {
+    setTimeout(() => {
+      if (home.dataset.phase !== 'reel') return;
+      showClip(i);
+      const bars = $$('#reel-bars i');
+      bars.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('run', k === i); });
+      bars[i].style.setProperty('--d', item.d + 's');
+      const cap = $('#reel-cap');
+      cap.querySelector('small').textContent = item.sub || '';
+      cap.querySelector('span').textContent = item.name || '';
+      cap.classList.remove('pop'); void cap.offsetWidth; cap.classList.add('pop');
+      const fl = $('#reel-flash'); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+    }, t * 1000);
+    t += item.d;
+  });
+  setTimeout(() => { if (home.dataset.phase === 'reel') startZoom(); }, (t - 0.9) * 1000);
+}
+
+function startZoom() {
+  phase('zoom');
+  zoomStart = performance.now();
+  geomLoop();
+  setTimeout(() => {
+    if (home.dataset.phase !== 'zoom') return;
+    phase('logo');
+    setTimeout(() => { if (home.dataset.phase === 'logo') phase('welcome'); }, 1100);
+  }, ZOOM_MS);
+  // in de O blijven de fragmenten doorlopen
+  clearInterval(loopTimer);
+  let k = reelItems.length - 1;
+  loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600);
+}
+
+// houdt de ring en het videovenster precies op de O, ook tijdens het uitzoomen en omhoog schuiven
+function geomLoop() {
+  cancelAnimationFrame(geomRaf);
+  const step = () => {
+    const p = home.dataset.phase;
+    if (!['zoom', 'logo', 'welcome', 'menu'].includes(p) || !home.classList.contains('active')) { geomRaf = null; return; }
+    const r = $('#o-slot').getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const b = r.width * 0.17;                       // dikte van de O
+    let e = 1;
+    if (p === 'zoom' && zoomStart != null) e = ease(Math.min(1, (performance.now() - zoomStart) / ZOOM_MS));
+    const big = Math.hypot(innerWidth, innerHeight) + b;
+    const rxo = big + (r.width / 2 - big) * e, ryo = big + (r.height / 2 - big) * e;
+    const rxi = Math.max(1, rxo - b), ryi = Math.max(1, ryo - b);
+    $('#reel').style.clipPath = `ellipse(${rxi}px ${ryi}px at ${cx}px ${cy}px)`;
+    const ring = $('#o-ring');
+    Object.assign(ring.style, { left: `${cx - rxo}px`, top: `${cy - ryo}px`, width: `${2 * rxo}px`, height: `${2 * ryo}px`, borderWidth: `${b}px` });
+    geomRaf = requestAnimationFrame(step);
+  };
+  step();
+}
+
+function toMenu() {
+  if (home.dataset.phase === 'menu') return;
+  $('#btn-skip').hidden = true;
+  phase('menu');
+  if (!geomRaf) geomLoop();
+  if (!loopTimer) { let k = 0; showClip(0); loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600); }
+  musicVolume(70);
+  loadOptions();
+  const code = new URLSearchParams(location.search).get('room');
+  if (code && !S.code) { $('#in-code').value = code.toUpperCase(); joinCode(code); }
+}
+
+function skipIntro() {
+  // meteen naar de eindsituatie van de animatie
+  zoomStart = performance.now() - ZOOM_MS;
+  if (!loopTimer) startZoom();
+  phase('welcome');
+  geomLoop();
+  $('#btn-skip').hidden = true;
+}
+
+// login
+$('#in-name').value = S.name;
+$('#switch-name').textContent = S.name;
+function openLogin() {
+  $('#btn-login').hidden = true;
+  $('#login-form').hidden = false;
+  $('#in-name').focus();
+}
+$('#btn-login').addEventListener('click', openLogin);
+$('#login-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const n = $('#in-name').value.trim();
+  if (!n) { const i = $('#in-name'); i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake'); i.focus(); return; }
+  S.name = n; localStorage.setItem('fo_name', n);
+  $('#welcome-name').textContent = n;
+  $('#switch-name').textContent = n;
+  $('#in-name').blur();
+  // alles wat een klik nodig heeft gebeurt hier meteen
+  try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}); } catch { /* */ }
+  startMusic();
+  $('#music').hidden = false;
+  playReel();
+});
+document.addEventListener('keydown', (e) => {
+  if (!home.classList.contains('active')) return;
+  const p = home.dataset.phase;
+  if (p === 'login' && !$('#btn-login').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLogin(); }
+  else if (p === 'welcome') { e.preventDefault(); toMenu(); }
+});
+home.addEventListener('click', (e) => { if (home.dataset.phase === 'welcome' && !e.target.closest('#btn-skip')) toMenu(); });
+$('#btn-skip').addEventListener('click', (e) => { e.stopPropagation(); skipIntro(); });
+$('#btn-switch').addEventListener('click', () => {
+  clearInterval(loopTimer); loopTimer = null;
+  $('#reel').style.clipPath = ''; $('#o-ring').style.width = '0';
+  $('#btn-login').hidden = true; $('#login-form').hidden = false;
+  phase('login'); $('#in-name').select(); $('#in-name').focus();
+});
+$('#btn-credits').addEventListener('click', () => { $('#credits').hidden = !$('#credits').hidden; });
+prepareReel();
 
 // ---------- menu ----------
-$('#in-name').value = S.name;
-$('#in-name').addEventListener('input', (e) => { S.name = e.target.value.trim(); localStorage.setItem('fo_name', S.name); });
-
 function needName() {
-  if (!S.name) { $('#in-name').focus(); $('#in-name').classList.add('shake'); setTimeout(() => $('#in-name').classList.remove('shake'), 400); return true; }
+  if (!S.name) { toast('Log eerst in met je naam'); return true; }
   return false;
 }
 
@@ -165,8 +349,7 @@ $('#btn-create').addEventListener('click', async () => {
   catch (e) { toast(e.message); }
 });
 $('#btn-solo').addEventListener('click', async () => {
-  if (!S.name) { S.name = 'Ik'; }
-  try { enterRoom(await rpc('create_room', { p_name: S.name, p_token: S.token, p_mode: S.draftMode, p_rounds: S.draftRounds }), true); }
+  try { enterRoom(await rpc('create_room', { p_name: S.name || 'Ik', p_token: S.token, p_mode: S.draftMode, p_rounds: S.draftRounds }), true); }
   catch (e) { toast(e.message); }
 });
 $('#btn-join').addEventListener('click', () => joinCode($('#in-code').value));
@@ -180,15 +363,16 @@ async function joinCode(code) {
   catch (e) { toast(e.message); }
 }
 
-function afterIntro() {
-  const code = new URLSearchParams(location.search).get('room');
-  show('menu');
-  if (code) {
-    $('#in-code').value = code.toUpperCase();
-    if (S.name) joinCode(code);
-    else toast('Vul je naam in en klik op Meedoen');
-  }
-  loadOptions();
+function stopReelLoop() {
+  clearInterval(loopTimer); loopTimer = null;
+  reelItems.forEach((r) => { try { r.video?.pause(); } catch { /* */ } });
+}
+
+function backHome() {
+  show('home');
+  phase('menu');
+  geomLoop();
+  if (!loopTimer) { let k = 0; showClip(0); loopTimer = setInterval(() => { k = (k + 1) % reelItems.length; showClip(k); }, 2600); }
 }
 
 async function loadOptions() {
@@ -227,7 +411,7 @@ function leaveRoom() {
   S.code = null; S.room = null;
   history.replaceState(null, '', location.pathname);
   musicVolume(70);
-  show('menu');
+  backHome();
 }
 
 function applyRoom(r) {

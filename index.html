@@ -14,38 +14,56 @@
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
 
-  <!-- INTRO -->
-  <section id="intro" class="screen active">
-    <div class="intro-idle">
-      <div class="intro-logo ghost">FACE<span>OFF</span></div>
-      <button id="btn-start" class="btn-start">START</button>
+  <!-- HOME: login → reel → logo → welkom → menu -->
+  <section id="home" class="screen active" data-phase="login">
+    <!-- reel (video's in de O) -->
+    <div id="reel" aria-hidden="true">
+      <div id="reel-clips"></div>
+      <div id="reel-bars"></div>
+      <div id="reel-cap"><small></small><span></span></div>
+      <div id="reel-flash"></div>
+    </div>
+
+    <!-- logo met O -->
+    <div id="brand">
+      <div id="logo-wrap">
+        <div class="logo-line">
+          <span class="lt l-left">FACE</span><span class="o-slot" id="o-slot"></span><span class="lt l-right">FF</span>
+        </div>
+      </div>
+      <div id="welcome">Welkom <b id="welcome-name"></b></div>
+      <div id="tap-hint">Tik om verder te gaan</div>
+    </div>
+
+    <!-- login -->
+    <div id="login">
+      <div class="login-logo">FACE<span>OFF</span></div>
+      <button id="btn-login" class="btn-start">LOGIN</button>
+      <form id="login-form" hidden autocomplete="off">
+        <input id="in-name" maxlength="20" placeholder="Jouw naam" autocomplete="nickname" enterkeyhint="go">
+        <button type="submit" class="enter-btn" aria-label="Enter">↵</button>
+      </form>
       <p class="intro-tip">Zet je geluid aan</p>
     </div>
-    <div class="intro-show" hidden>
-      <div id="intro-stage"></div>
-      <div id="intro-flash"></div>
-      <div class="intro-logo final" id="intro-final">FACE<span>OFF</span></div>
-    </div>
-    <button id="btn-skip" class="btn-ghost skip" hidden>Overslaan ›</button>
-  </section>
 
-  <!-- MENU -->
-  <section id="menu" class="screen">
-    <div class="panel menu-panel">
-      <div class="logo">FACE<span>OFF</span></div>
-      <p class="tagline">Herken de voetballer. Sneller dan je vriend.</p>
-      <label class="field">
-        <span>Jouw naam</span>
-        <input id="in-name" maxlength="20" placeholder="bv. Emile" autocomplete="nickname">
-      </label>
+    <!-- menu -->
+    <div id="menu-opts">
       <button id="btn-create" class="btn primary">Kamer aanmaken</button>
       <div class="join-row">
         <input id="in-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
         <button id="btn-join" class="btn">Meedoen</button>
       </div>
       <button id="btn-solo" class="btn ghost">Alleen oefenen</button>
-      <p class="small muted" id="db-stats"></p>
+      <div class="menu-foot">
+        <span class="small muted" id="db-stats"></span>
+        <button id="btn-switch" class="linkbtn">Niet <span id="switch-name"></span>? Andere naam</button>
+        <button id="btn-credits" class="linkbtn">Credits</button>
+      </div>
+      <div id="credits" class="small muted" hidden></div>
     </div>
+
+    <div id="o-ring"></div>
+    <button id="btn-skip" class="btn-ghost skip" hidden>Overslaan ›</button>
   </section>
 
   <!-- LOBBY -->
@@ -136,8 +154,10 @@
     </div>
   </section>
 
+  <button id="music-fix" class="music-fix" hidden>Tik hier om de muziek te starten</button>
+
   <!-- muziek -->
-  <div class="music" id="music" hidden>
+  <div class="music dim" id="music">
     <div class="music-art"><div id="yt"></div></div>
     <div class="music-meta">
       <div class="music-title">Feet Don't Fail Me Now</div>
