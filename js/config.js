@@ -23,21 +23,20 @@ export const HINT_TIMES = [8, 14, 20, 25];
 export const MUSIC_FALLBACK_IDS = ['qZlvBI84mas'];
 
 // Intro-montage: echte, vrij gelicentieerde beelden van Wikimedia Commons (CC BY 3.0, Real Madrid C.F.).
-// t = startseconde in de video, d = duur van het fragment in seconden. De montage herhaalt
-// zich tot het moment van het refrein bereikt is.
-const RONALDO = 'All 48 goals of Cristiano Ronaldo, in 35 league matches for Real Madrid (2014-15).ogv';
+// t = startseconde in de video, d = duur van het fragment in seconden. Uitgekozen uit
+// "THANK YOU, CRISTIANO RONALDO" (Real Madrid): dribbels, goals en vieringen.
 const CR7 = 'THANK YOU, CRISTIANO RONALDO - Real Madrid Official Video.webm';
 export const REEL = [
-  { file: CR7, t: 30, d: 1.3 },     // bal aan de voet, close-up
-  { file: CR7, t: 45, d: 1.2 },     // schot op doel
-  { file: RONALDO, t: 47, d: 1.3 }, // rush richting doel
-  { file: CR7, t: 330, d: 1.3 },    // dribbel
-  { file: CR7, t: 150, d: 1.2 },    // Champions League-actie
-  { file: CR7, t: 270, d: 1.2 },    // bal in het net
-  { file: CR7, t: 225, d: 1.3 },    // actie in de zestien
-  { file: RONALDO, t: 262, d: 1.2 },// viering met Marcelo
-  { file: CR7, t: 240, d: 1.2 },    // viering
-  { file: CR7, t: 120, d: 1.6 },    // shirt uit, iconische viering
-  { file: CR7, t: 360, d: 1.4 },    // trofee
-  { file: CR7, t: 15, d: 1.8 },     // viering voor het publiek
+  { file: CR7, t: 25.5, d: 1.3 },  // 0:26 bal aan de voet, close-up
+  { file: CR7, t: 136.5, d: 1.3 }, // 2:17 dribbel langs Bayern-spelers
+  { file: CR7, t: 319.5, d: 1.3 }, // 5:20 dribbel tegen PSG
+  { file: CR7, t: 70.0, d: 1.3 },  // 1:11 bal voorbij de keeper in het net
+  { file: CR7, t: 31.0, d: 1.2 },  // 0:32 duik/afronding voor doel
+  { file: CR7, t: 324.5, d: 2.0 }, // 5:26 de omhaal tegen Juventus
+  { file: CR7, t: 190.0, d: 1.2 }, // 3:11 bal in het net
+  { file: CR7, t: 292.5, d: 1.3 }, // 4:53 goal tegen Barcelona
+  { file: CR7, t: 118.5, d: 1.4 }, // 1:59 shirt uit, iconische viering
+  { file: CR7, t: 250.5, d: 1.2 }, // 4:11 schreeuw na een goal
+  { file: CR7, t: 280.5, d: 1.2 }, // 4:41 hele ploeg op elkaar
+  { file: CR7, t: 253.5, d: 1.8 }, // 4:14 confetti met de trofee
 ];
