@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795788886';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795789073';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -491,6 +491,13 @@ $('#login-form').addEventListener('submit', (e) => {
   try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}); } catch { /* */ }
   startMusic();
   $('#music').hidden = false;
+  if (inviteOk && !S.code) {
+    // uitgenodigd: geen montage, meteen naar de lobby van de uitnodiger
+    rpc('join_room', { p_code: INVITE, p_name: S.name, p_token: S.token })
+      .then((room) => { musicVolume(70); enterRoom(room, false); })
+      .catch((err) => { toast(err.message || 'Deze kamer is niet meer beschikbaar'); inviteOk = false; playReel(); });
+    return;
+  }
   playReel();
 });
 document.addEventListener('keydown', (e) => {
@@ -607,7 +614,8 @@ function renderLobby() {
   const r = S.room;
   if (!$('#lobby').classList.contains('active')) { show('lobby'); musicVolume(70); buildModePicker(); }
   $('#lobby-code').textContent = S.solo ? 'SOLO' : r.code;
-  $('#btn-share').hidden = S.solo;
+  $('#invite-box').hidden = S.solo || !!r.guest_name || !isHost();
+  if (!$('#invite-box').hidden) updateInvite();
   $('#lobby-p1 .pname').textContent = r.host_name;
   const p2 = $('#lobby-p2');
   p2.classList.toggle('waiting', !r.guest_name);
@@ -691,13 +699,32 @@ function pushMode() {
   }, 150);
 }
 
-$('#btn-share').addEventListener('click', async () => {
-  const url = `${location.origin}${location.pathname}?room=${S.code}`;
-  try {
-    if (navigator.share) await navigator.share({ title: 'FaceOff', text: `Speel FaceOff tegen mij! Code ${S.code}`, url });
-    else { await navigator.clipboard.writeText(url); toast('Link gekopieerd'); }
-  } catch { /* geannuleerd */ }
+// ---- uitnodigen ----
+const inviteUrl = () => `${location.origin}${location.pathname}?room=${S.code}`;
+const inviteText = () => `${S.name} daagt je uit voor FaceOff! Raad sneller dan ik welke voetballer het is. Doe mee: ${inviteUrl()}`;
+function updateInvite() {
+  $('#btn-wa').href = 'https://wa.me/?text=' + encodeURIComponent(inviteText());
+  $('#btn-share').hidden = !navigator.share;
+}
+$('#btn-copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(inviteUrl()); toast('Link gekopieerd'); }
+  catch { prompt('Kopieer deze link', inviteUrl()); }
 });
+$('#btn-share').addEventListener('click', async () => {
+  try { await navigator.share({ title: 'FaceOff', text: inviteText().replace(/ Doe mee: .*$/, ''), url: inviteUrl() }); } catch { /* geannuleerd */ }
+});
+// wie via een uitnodiging binnenkomt: banner op het loginscherm, en na de naam meteen de kamer in
+const INVITE = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+let inviteOk = false;
+if (INVITE.length === 4) {
+  rpc('tick', { p_code: INVITE }).then((r) => {
+    if (r && r.status === 'lobby' && !r.guest_name) {
+      inviteOk = true;
+      $('#inv-host').textContent = r.host_name;
+      $('#invite-banner').hidden = false;
+    }
+  }).catch(() => {});
+}
 $('#btn-leave').addEventListener('click', leaveRoom);
 $('#btn-go').addEventListener('click', async () => {
   $('#btn-go').disabled = true;
