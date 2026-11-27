@@ -287,3 +287,18 @@ revoke execute on function public.fo_slot(text, uuid) from public, anon, authent
 grant execute on function public.create_room(text, uuid, jsonb, int), public.join_room(text, text, uuid), public.set_mode(text, uuid, jsonb, int),
   public.start_game(text, uuid), public.submit_guess(text, uuid, text), public.tick(text), public.skip_round(text, uuid),
   public.back_to_lobby(text, uuid), public.mode_options(), public.pool_names(jsonb), public.intro_faces() to anon, authenticated;
+
+-- spel verlaten (toegevoegd)
+alter table public.rooms add column if not exists left_slot int;
+create or replace function public.leave_room(p_code text, p_token uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare s int;
+begin
+  s := fo_slot(p_code, p_token);
+  if s is null then return null; end if;
+  update rooms set status = case when status in ('playing','reveal') then 'finished' else status end,
+    left_slot = s, next_at = null, updated_at = now()
+  where code = upper(p_code);
+  return fo_room_json(p_code);
+end $$;
+grant execute on function public.leave_room(text, uuid) to anon, authenticated;
