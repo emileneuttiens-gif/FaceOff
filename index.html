@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FaceOff</title>
+  <meta name="description" content="Wie herkent de voetballer het snelst? Speel FaceOff 1-tegen-1.">
+  <meta name="theme-color" content="#05070d">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
+
+  <!-- INTRO -->
+  <section id="intro" class="screen active">
+    <div class="intro-idle">
+      <div class="intro-logo ghost">FACE<span>OFF</span></div>
+      <button id="btn-start" class="btn-start">START</button>
+      <p class="intro-tip">Zet je geluid aan</p>
+    </div>
+    <div class="intro-show" hidden>
+      <div id="intro-stage"></div>
+      <div id="intro-flash"></div>
+      <div class="intro-logo final" id="intro-final">FACE<span>OFF</span></div>
+    </div>
+    <button id="btn-skip" class="btn-ghost skip" hidden>Overslaan ›</button>
+  </section>
+
+  <!-- MENU -->
+  <section id="menu" class="screen">
+    <div class="panel menu-panel">
+      <div class="logo">FACE<span>OFF</span></div>
+      <p class="tagline">Herken de voetballer. Sneller dan je vriend.</p>
+      <label class="field">
+        <span>Jouw naam</span>
+        <input id="in-name" maxlength="20" placeholder="bv. Emile" autocomplete="nickname">
+      </label>
+      <button id="btn-create" class="btn primary">Kamer aanmaken</button>
+      <div class="join-row">
+        <input id="in-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+        <button id="btn-join" class="btn">Meedoen</button>
+      </div>
+      <button id="btn-solo" class="btn ghost">Alleen oefenen</button>
+      <p class="small muted" id="db-stats"></p>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="screen">
+    <div class="panel lobby-panel">
+      <div class="lobby-head">
+        <div>
+          <div class="label">Kamercode</div>
+          <div class="room-code" id="lobby-code">----</div>
+        </div>
+        <button id="btn-share" class="btn small">Link kopiëren</button>
+      </div>
+      <div class="versus">
+        <div class="pcard" id="lobby-p1"><div class="avatar">1</div><div class="pname">…</div><div class="ptag">Host</div></div>
+        <div class="vs">VS</div>
+        <div class="pcard" id="lobby-p2"><div class="avatar">2</div><div class="pname">Wachten…</div><div class="ptag">Deel de code</div></div>
+      </div>
+
+      <div id="mode-picker">
+        <div class="label">Spelmodus</div>
+        <div class="mode-tabs" id="mode-tabs">
+          <button data-type="bekend" class="active">Bekend</button>
+          <button data-type="league">Competitie</button>
+          <button data-type="club">Club</button>
+          <button data-type="country">Land</button>
+          <button data-type="legend">Legendes</button>
+          <button data-type="alles">Alles</button>
+          <button data-type="vrouwen">Vrouwen</button>
+        </div>
+        <div class="mode-sub" id="mode-sub"></div>
+        <div class="label">Rondes</div>
+        <div class="rounds" id="rounds">
+          <button data-r="5">5</button><button data-r="10" class="active">10</button><button data-r="15">15</button><button data-r="20">20</button>
+        </div>
+      </div>
+      <div class="mode-readonly" id="mode-readonly" hidden></div>
+
+      <div class="mode-summary" id="mode-summary"></div>
+      <button id="btn-go" class="btn primary big">Start de wedstrijd</button>
+      <p class="small muted center" id="lobby-hint"></p>
+      <button id="btn-leave" class="btn ghost small">Terug naar menu</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <header class="scorebar">
+      <div class="side left" id="sb-p1"><span class="nm">Speler 1</span><span class="sc">0</span></div>
+      <div class="mid"><div class="rnd" id="sb-round">Ronde 1/10</div><div class="mode" id="sb-mode"></div></div>
+      <div class="side right" id="sb-p2"><span class="sc">0</span><span class="nm">Speler 2</span></div>
+    </header>
+    <div class="timer"><div id="timer-fill"></div></div>
+
+    <div class="stage">
+      <div class="photo-wrap" id="photo-wrap">
+        <img id="photo" alt="Welke voetballer is dit?" referrerpolicy="no-referrer">
+        <div class="countdown" id="countdown"></div>
+        <div class="reveal" id="reveal" hidden>
+          <div class="reveal-name" id="reveal-name"></div>
+          <div class="reveal-who" id="reveal-who"></div>
+        </div>
+      </div>
+      <div class="credit" id="credit"></div>
+      <div class="hints" id="hints"></div>
+    </div>
+
+    <div class="answer">
+      <div class="ac-wrap">
+        <input id="in-guess" placeholder="Wie is dit?" autocomplete="off" spellcheck="false">
+        <ul id="ac-list" class="ac-list" hidden></ul>
+      </div>
+      <button id="btn-guess" class="btn primary">Raad</button>
+      <button id="btn-skipround" class="btn ghost" hidden>Weet ik niet</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- END -->
+  <section id="end" class="screen">
+    <div class="panel end-panel">
+      <div class="label">Eindstand</div>
+      <div class="end-title" id="end-title"></div>
+      <div class="end-scores" id="end-scores"></div>
+      <button id="btn-again" class="btn primary">Nog een keer</button>
+      <button id="btn-menu" class="btn ghost">Menu</button>
+      <p class="small muted center" id="end-hint"></p>
+    </div>
+  </section>
+
+  <!-- muziek -->
+  <div class="music" id="music" hidden>
+    <div class="music-art"><div id="yt"></div></div>
+    <div class="music-meta">
+      <div class="music-title">Feet Don't Fail Me Now</div>
+      <div class="music-artist">Joy Crookes</div>
+    </div>
+    <button id="btn-mute" class="music-btn" title="Geluid aan/uit">♪</button>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api" async></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
