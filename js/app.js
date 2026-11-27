@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795809580';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795814369';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -543,17 +543,64 @@ function paintShirt() {
   $('#login-form .btn-start').disabled = v.trim().length < 2;
 }
 document.fonts?.ready?.then(paintShirt);
-$('#login').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#in-name').focus(); });
+$('#login').addEventListener('click', (e) => {
+  if (e.target.closest('button') || e.target.closest('#pw-box')) return;
+  (!$('#pw-box').hidden ? $('#in-pw') : $('#in-name')).focus();
+});
 $('#in-name').addEventListener('input', paintShirt);
 let musicUnlocked = false;
 const unlockOnce = () => { if (!musicUnlocked) { musicUnlocked = true; unlockMusic(); } };
 ['pointerdown', 'keydown'].forEach((ev) => $('#login').addEventListener(ev, unlockOnce));
 paintShirt();
 setTimeout(() => { if (home.dataset.phase === 'login') $('#in-name').focus(); }, 300);
-$('#login-form').addEventListener('submit', (e) => {
+// ---- account: naam + wachtwoord (geen e-mail) ----
+S.session = localStorage.getItem('fo_session') || '';
+S.account = null;
+if (S.session) {
+  rpc('account_session', { p_token: S.session }).then((a) => {
+    if (a?.username) {
+      S.account = a;
+      if (home.dataset.phase === 'login' && !$('#in-name').value) { $('#in-name').value = a.username; paintShirt(); }
+    } else { S.session = ''; localStorage.removeItem('fo_session'); }
+  }).catch(() => {});
+}
+let authMode = null;   // null | 'login' | 'register'
+function pwMsg(t) { $('#pw-msg').textContent = t || ''; }
+function shakePw() { const i = $('#in-pw'); i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake'); i.select(); }
+$('#in-name').addEventListener('input', () => { if (authMode) { authMode = null; $('#pw-box').hidden = true; $('#in-pw').value = ''; pwMsg(''); } });
+async function authenticate(n) {
+  // al ingelogd met deze naam: meteen door
+  if (S.account && S.account.username.toLowerCase() === n.toLowerCase()) return S.account.username;
+  if (!authMode) {
+    const exists = await rpc('account_exists', { p_name: n });
+    authMode = exists ? 'login' : 'register';
+    $('#pw-label').textContent = exists ? `Wachtwoord voor ${n.toUpperCase()}` : `Nieuwe speler · kies een wachtwoord`;
+    $('#in-pw').autocomplete = exists ? 'current-password' : 'new-password';
+    $('#pw-box').hidden = false; pwMsg(exists ? '' : 'Minstens 4 tekens. Hiermee claim je deze naam.');
+    $('#in-pw').focus();
+    return null;
+  }
+  const pw = $('#in-pw').value;
+  if (!pw) { shakePw(); return null; }
+  try {
+    const res = await rpc(authMode === 'login' ? 'account_login' : 'account_register', { p_name: n, p_pw: pw });
+    S.session = res.token; localStorage.setItem('fo_session', res.token);
+    S.account = { username: res.username };
+    authMode = null; $('#pw-box').hidden = true; $('#in-pw').value = ''; pwMsg('');
+    return res.username;
+  } catch (err) { pwMsg(err.message || 'Inloggen mislukt'); shakePw(); return null; }
+}
+let authBusy = false;
+$('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const n = $('#in-name').value.trim();
-  if (!n) { const i = $('#in-name'); i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake'); i.focus(); return; }
+  let n = $('#in-name').value.trim();
+  if (n.length < 2) { const i = $('#in-name'); i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake'); i.focus(); return; }
+  if (authBusy) return;
+  authBusy = true;
+  const user = await authenticate(n).catch((err) => { toast(err.message); return null; });
+  authBusy = false;
+  if (!user) return;
+  n = user;
   S.name = n; localStorage.setItem('fo_name', n);
   $('#welcome-name').textContent = n;
   $('#switch-name').textContent = n;
@@ -698,6 +745,11 @@ function renderLobby() {
   $('#mode-readonly').hidden = isHost();
   $('#mode-readonly').innerHTML = `<div class="label">Spelmodus</div><b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes<br><span class="small muted">De host kiest de modus</span>`;
   const rec = S.solo ? +(localStorage.getItem(recordKey(r)) || 0) : 0;
+  if (S.solo && S.session && S.recFetched !== recordKey(r)) {
+    S.recFetched = recordKey(r);
+    rpc('record_get', { p_token: S.session, p_mode: r.mode_label || 'bekend', p_rounds: r.total_rounds })
+      .then((b) => { if (b > rec) { localStorage.setItem(recordKey(r), b); renderLobby(); } }).catch(() => {});
+  }
   $('#mode-summary').innerHTML = `Modus: <b>${esc(leagueName(r.mode_label))}</b> · ${r.total_rounds} rondes`
     + (S.solo ? `<br><span class="record">${rec ? `Jouw record: <b>${rec}</b>` : 'Nog geen record in deze modus'}</span>` : '');
   $('#mode-summary').hidden = !isHost();
@@ -1251,6 +1303,10 @@ function renderEnd() {
       const key = recordKey(r), prev = +(localStorage.getItem(key) || 0);
       S.endRecord = r.host_score > prev ? { neu: true, prev } : { neu: false, prev };
       if (r.host_score > prev) localStorage.setItem(key, r.host_score);
+      if (S.session) {
+        rpc('record_save', { p_token: S.session, p_mode: r.mode_label || 'bekend', p_rounds: r.total_rounds, p_score: r.host_score })
+          .then((x) => { if (x) { S.endRecord = { neu: x.new, prev: x.prev }; localStorage.setItem(key, Math.max(x.prev, r.host_score)); renderEnd(); } }).catch(() => {});
+      }
     }
     const rec = S.endRecord || { neu: false, prev: 0 };
     title += rec.neu

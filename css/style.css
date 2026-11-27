@@ -509,3 +509,11 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 .photo-wrap #photo { position: relative; }
 .photo-wrap.fit #photo { object-fit: contain; object-position: 50% 50%; filter: drop-shadow(0 10px 30px rgba(0,0,0,.5)); }
 #photo { image-rendering: auto; }
+/* wachtwoord onder het shirt */
+.pw-box { position: absolute; left: 50%; bottom: calc(7vh + 76px); transform: translateX(-50%); width: min(360px, 86vw); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 3; animation: fadein .35s ease; }
+.pw-box[hidden] { display: none; }
+.pw-box label { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #e9e7ec; text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+#login-form #in-pw { width: 100%; height: 48px; box-sizing: border-box; border-radius: 14px; border: 1px solid rgba(255,255,255,.18); background: rgba(14,14,16,.82); color: #fff; text-align: center; font: 600 18px Inter, sans-serif; letter-spacing: .2em; padding: 0 14px; backdrop-filter: blur(8px); outline: none; }
+#login-form #in-pw:focus { border-color: var(--lime); }
+#login-form #in-pw.shake { animation: shake .35s; border-color: var(--lime); }
+.pw-msg { margin: 0; min-height: 16px; font-size: 12px; color: #c4c1ca; text-shadow: 0 1px 6px rgba(0,0,0,.8); text-align: center; }
