@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800658';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800791';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -479,15 +479,15 @@ function openLogin() {
   $('#in-name').select();
 }
 $('#btn-login').addEventListener('click', () => { unlockMusic(); openLogin(); });
-// naam live op het shirt
+// naam live op het shirt: je typt rechtstreeks op de rug, lange namen krimpen mee
 function paintShirt() {
-  const n = ($('#in-name').value.trim() || 'JOUW NAAM').toUpperCase();
-  const t = $('#shirt-name');
-  t.textContent = n;
-  const size = Math.max(14, Math.min(30, 240 / Math.max(n.length, 1) * 1.05));
-  t.parentNode.setAttribute('font-size', size.toFixed(1));
-  $('#shirt').classList.toggle('empty', !$('#in-name').value.trim());
+  const i = $('#in-name');
+  const w = i.clientWidth || 300;
+  let size = w * 0.15;
+  i.style.fontSize = size + 'px';
+  for (let k = 0; k < 30 && i.scrollWidth > i.clientWidth + 1 && size > 12; k++) { size *= 0.92; i.style.fontSize = size + 'px'; }
 }
+addEventListener('resize', paintShirt);
 $('#in-name').addEventListener('input', paintShirt);
 let musicUnlocked = false;
 const unlockOnce = () => { if (!musicUnlocked) { musicUnlocked = true; unlockMusic(); } };

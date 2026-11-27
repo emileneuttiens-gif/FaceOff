@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795800658">
+  <link rel="stylesheet" href="css/style.css?v=1795800791">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -46,24 +46,33 @@
     <div id="login">
       <div class="login-logo">FACE<span>OFF</span></div>
       <div id="invite-banner" class="invite-banner" hidden><span class="ib-k">Uitdaging</span><span><b id="inv-host"></b> daagt je uit voor een FaceOff</span><span class="ib-s">Geef je naam en je zit meteen in de kamer</span></div>
-      <div class="shirt-wrap">
-        <div class="shirt-ring r1"></div><div class="shirt-ring r2"></div>
-        <svg id="shirt" viewBox="0 0 300 320" role="img" aria-label="Jouw shirt">
-          <defs>
-            <linearGradient id="sh-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a58"/><stop offset="1" stop-color="#d7222f"/></linearGradient>
-            <linearGradient id="sh-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".18" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
-            <path id="name-arc" d="M70 112 Q150 90 230 112"/>
-          </defs>
-          <path d="M60 40 L110 20 Q150 38 190 20 L240 40 L294 94 L262 136 L236 118 L236 302 Q150 314 64 302 L64 118 L38 136 L6 94 Z" fill="url(#sh-g)" stroke="#0e0e10" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M64 118 L64 302 Q150 314 236 302 L236 118" fill="url(#sh-s)"/>
-          <path d="M6 94 L24 74 L54 114 L38 136 Z M294 94 L276 74 L246 114 L262 136 Z" fill="#0e0e10"/>
-          <path d="M110 20 Q150 38 190 20 Q150 50 110 20 Z" fill="#0e0e10"/>
-          <text class="shirt-name" fill="#fff"><textPath id="shirt-name" href="#name-arc" startOffset="50%" text-anchor="middle">JOUW NAAM</textPath></text>
-          <text class="shirt-num" x="150" y="252" text-anchor="middle" fill="#fff">10</text>
-        </svg>
-      </div>
       <form id="login-form" autocomplete="off">
-        <input id="in-name" maxlength="16" placeholder="Zet je naam op het shirt" autocomplete="nickname" enterkeyhint="go" aria-label="Jouw naam">
+        <div class="shirt-wrap">
+          <div class="shirt-ring r1"></div><div class="shirt-ring r2"></div>
+          <svg id="shirt" viewBox="-12 0 424 440" aria-hidden="true">
+            <defs>
+              <linearGradient id="sh-base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b59"/><stop offset=".55" stop-color="#ec2f3e"/><stop offset="1" stop-color="#c81c2a"/></linearGradient>
+              <linearGradient id="sh-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".38"/><stop offset=".2" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".07"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient>
+              <linearGradient id="sh-fold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".48" stop-color="#000" stop-opacity="0"/><stop offset=".52" stop-color="#000" stop-opacity=".14"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset=".7" stop-color="#000" stop-opacity="0"/></linearGradient>
+              <filter id="sh-tex" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="4" result="n"/><feColorMatrix in="n" type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .09"/></feComponentTransfer><feComposite in2="SourceGraphic" operator="in"/></filter>
+              <clipPath id="sh-clip"><path id="sh-path" d="M120 44 Q200 68 280 44 L350 68 Q382 80 394 110 L408 190 L336 208 L320 170 L322 412 Q200 432 78 412 L80 170 L64 208 L-8 190 L6 110 Q18 80 50 68 Z"/></clipPath>
+            </defs>
+            <g clip-path="url(#sh-clip)">
+              <rect x="-12" y="0" width="424" height="440" fill="url(#sh-base)"/>
+              <rect x="70" y="0" width="260" height="440" fill="url(#sh-side)"/>
+              <rect x="-12" y="0" width="424" height="440" fill="url(#sh-fold)"/>
+              <path d="M64 208 L-8 190 L-2 160 L70 176 Z M336 208 L408 190 L402 160 L330 176 Z" fill="#141317"/>
+              <path d="M-2 160 L70 176 M402 160 L330 176" stroke="#fff" stroke-opacity=".5" stroke-width="3"/>
+              <path d="M80 170 Q72 120 58 70 M320 170 Q328 120 342 70" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
+              <path d="M78 400 Q200 420 322 400" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="2" stroke-dasharray="4 4"/>
+              <rect x="-12" y="0" width="424" height="440" fill="#fff" filter="url(#sh-tex)"/>
+            </g>
+            <path d="M120 44 Q200 68 280 44" fill="none" stroke="#141317" stroke-width="14" stroke-linecap="round"/>
+            <path d="M120 44 Q200 68 280 44" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2" transform="translate(0 6)"/>
+            <use href="#sh-path" fill="none" stroke="#0e0e10" stroke-width="3" stroke-linejoin="round"/>
+          </svg>
+          <input id="in-name" maxlength="14" placeholder="JOUW NAAM" autocomplete="nickname" enterkeyhint="go" aria-label="Jouw naam" spellcheck="false">
+        </div>
         <button type="submit" class="btn-start">SPELEN</button>
       </form>
       <button id="btn-login" hidden>LOGIN</button>
@@ -230,6 +239,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795800658"></script>
+  <script type="module" src="js/app.js?v=1795800791"></script>
 </body>
 </html>
