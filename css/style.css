@@ -283,3 +283,5 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #home { transition: background .8s ease; }
 #home[data-phase="menu"] { background: transparent; }
 #home[data-phase="menu"] #reel { opacity: 0 !important; }
+/* op het loginscherm en tijdens de montage is het schild nog niet zichtbaar */
+#home[data-phase="login"] #brand, #home[data-phase="reel"] #brand { opacity: 0; visibility: hidden; }
