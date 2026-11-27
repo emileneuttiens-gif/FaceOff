@@ -477,3 +477,10 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #rug.stamp #rug-caret { display: none; }
 .intro-vid { will-change: transform; }
 #home[data-phase="reel"] #login { transition: opacity .45s ease; }
+
+/* intro: geen zwarte balken maar de game-achtergrond (stadion + vage legendes) rond het breedbeeld */
+#home[data-phase="reel"], #home[data-phase="zoom"] { background: transparent; }
+#home[data-phase="reel"] #reel, #home[data-phase="zoom"] #reel { background: transparent; }
+.intro-vid { background: transparent; }
+#home[data-phase="reel"] #legends, #home[data-phase="zoom"] #legends, #home[data-phase="logo"] #legends { opacity: .16; }
+#home[data-phase="reel"] #legends .lg, #home[data-phase="zoom"] #legends .lg, #home[data-phase="logo"] #legends .lg { transform: skewX(-12deg); opacity: 1; }
