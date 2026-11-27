@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795784664';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795785144';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -687,8 +687,12 @@ function setRoundPhoto(url) {
   const img = $('#photo');
   const my = ++photoToken;
   S.photoReady = false;
+  // meteen onzichtbaar (zonder fade), anders schemert de nieuwe foto door tijdens het uitfaden
+  img.style.transition = 'none';
   img.classList.remove('show');
   img.removeAttribute('src');                    // nooit de foto van de vorige ronde laten staan
+  void img.offsetWidth;
+  img.style.transition = '';
   $('#photo-wrap').classList.add('loading');
   preloadPhoto(url).then((ok) => {
     if (my !== photoToken) return;
