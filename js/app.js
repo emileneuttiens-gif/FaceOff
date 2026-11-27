@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795801867';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795802035';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -484,13 +484,13 @@ function paintShirt() {
   const v = $('#in-name').value.replace(/\s+/g, ' ').toUpperCase();
   const t = $('#rug-name'), txt = $('#rug-text'), caret = $('#rug-caret');
   t.textContent = v;
-  let size = 124; txt.setAttribute('font-size', size);
+  let size = 150; txt.setAttribute('font-size', size);
   try {
-    const maxW = 720;
+    const maxW = 800;
     const w = txt.getComputedTextLength();
-    if (w > maxW) { size = Math.max(52, size * maxW / w); txt.setAttribute('font-size', size.toFixed(1)); }
+    if (w > maxW) { size = Math.max(62, size * maxW / w); txt.setAttribute('font-size', size.toFixed(1)); }
     // streepje achter de laatste letter (of in het midden als het leeg is)
-    let x = 836, y = 312;
+    let x = 836, y = 372;
     if (v.length) { const p = txt.getEndPositionOfChar(v.length - 1); x = p.x + 8; y = p.y; }
     caret.setAttribute('height', (size * 0.84).toFixed(1));
     caret.setAttribute('x', x.toFixed(1));
