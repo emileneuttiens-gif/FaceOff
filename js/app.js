@@ -99,8 +99,9 @@ rpc('intro_faces').then((f) => {
 }).catch(() => {});
 
 let introDone = false;
-$('#btn-start').addEventListener('click', async () => {
-  try { await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }); } catch { /* */ }
+$('#btn-start').addEventListener('click', () => {
+  // niet wachten op fullscreen: sommige browsers beantwoorden die vraag nooit
+  try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}); } catch { /* */ }
   musicPlay();
   playIntro();
 });
