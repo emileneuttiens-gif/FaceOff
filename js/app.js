@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795785567';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795785709';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -189,6 +189,8 @@ function fadeOutThen(ms, done) {
 setInterval(() => {
   if (audio || !ytReady || !musicWanted || xfading) return;
   try {
+    // browsers dempen soms een automatisch gestart volgend nummer: weer aanzetten
+    if (plMode && !muted && yt.isMuted()) { yt.unMute(); yt.playVideo(); }
     if (yt.getPlayerState() !== YT.PlayerState.PLAYING) return;
     const d = yt.getDuration(), c = yt.getCurrentTime();
     if (d > 30 && d - c < 2.6) { xfading = true; fadeOutThen(muted ? 0 : 2200, nextTrack); }
