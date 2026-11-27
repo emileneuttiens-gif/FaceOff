@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795801750">
+  <link rel="stylesheet" href="css/style.css?v=1795801867">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -51,22 +51,29 @@
           <defs>
             <!-- de naam volgt de plooien van de stof en krijgt het licht van de foto mee -->
             <filter id="print" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941" color-interpolation-filters="sRGB">
+              <!-- opgestreken vinyl: volgt de plooien, neemt het licht van de foto over, glanst licht en ligt een tikje boven de stof -->
               <feImage href="media/login-rug.jpg" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" result="foto"/>
-              <feColorMatrix in="foto" type="luminanceToAlpha" result="lumA"/>
-              <feColorMatrix in="foto" type="matrix" values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  .2126 .7152 .0722 0 0" result="lum"/>
-              <feGaussianBlur in="foto" stdDeviation="1.2" result="fotoZacht"/>
-              <feDisplacementMap in="SourceGraphic" in2="fotoZacht" scale="9" xChannelSelector="R" yChannelSelector="G" result="vervormd"/>
+              <feGaussianBlur in="foto" stdDeviation="1.4" result="fotoZacht"/>
+              <feDisplacementMap in="SourceGraphic" in2="fotoZacht" scale="6" xChannelSelector="R" yChannelSelector="G" result="vorm"/>
               <feColorMatrix in="foto" type="matrix" values=".2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  0 0 0 1 0" result="grijs"/>
-              <feComponentTransfer in="grijs" result="licht"><feFuncR type="linear" slope="4.2" intercept=".42"/><feFuncG type="linear" slope="4.2" intercept=".42"/><feFuncB type="linear" slope="4.2" intercept=".42"/></feComponentTransfer>
-              <feBlend in="vervormd" in2="licht" mode="multiply" result="belicht"/>
-              <feComposite in="belicht" in2="vervormd" operator="in" result="opdruk"/>
-              <feGaussianBlur in="opdruk" stdDeviation=".45"/>
+              <feComponentTransfer in="grijs" result="licht"><feFuncR type="linear" slope="1.7" intercept=".74"/><feFuncG type="linear" slope="1.7" intercept=".74"/><feFuncB type="linear" slope="1.7" intercept=".74"/></feComponentTransfer>
+              <feBlend in="vorm" in2="licht" mode="multiply" result="belicht"/>
+              <feComposite in="belicht" in2="vorm" operator="in" result="opdruk"/>
+              <feGaussianBlur in="vorm" stdDeviation="2.2" result="bobbel"/>
+              <feSpecularLighting in="bobbel" surfaceScale="3.5" specularConstant=".75" specularExponent="22" lighting-color="#ffffff" result="glans"><feDistantLight azimuth="250" elevation="52"/></feSpecularLighting>
+              <feComposite in="glans" in2="vorm" operator="in" result="glansIn"/>
+              <feComposite in="opdruk" in2="glansIn" operator="arithmetic" k2="1" k3=".32" result="vinyl"/>
+              <feColorMatrix in="vorm" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .7 0" result="zwart"/>
+              <feOffset in="zwart" dy="2.5" result="zwartLaag"/>
+              <feGaussianBlur in="zwartLaag" stdDeviation="1.8" result="schaduw"/>
+              <feGaussianBlur in="vinyl" stdDeviation=".35" result="vinylZacht"/>
+              <feMerge><feMergeNode in="schaduw"/><feMergeNode in="vinylZacht"/></feMerge>
             </filter>
-            <path id="rug-arc" d="M520 318 Q836 268 1152 318"/>
+            <path id="rug-arc" d="M440 340 Q836 282 1232 340"/>
           </defs>
           <image href="media/login-rug.jpg" x="0" y="0" width="1672" height="941" preserveAspectRatio="none"/>
-          <text id="rug-text" fill="#d81f2e" font-family="Anton, sans-serif" font-size="92" letter-spacing="7" filter="url(#print)"><textPath id="rug-name" href="#rug-arc" startOffset="50%" text-anchor="middle"></textPath></text>
-          <rect id="rug-caret" width="5" height="78" rx="2" fill="#d81f2e" opacity=".9"/>
+          <text id="rug-text" fill="#f3f2ef" font-family="Anton, sans-serif" font-size="124" letter-spacing="8" filter="url(#print)"><textPath id="rug-name" href="#rug-arc" startOffset="50%" text-anchor="middle"></textPath></text>
+          <rect id="rug-caret" width="6" height="104" rx="2" fill="#f3f2ef" opacity=".9"/>
           <rect x="0" y="600" width="1672" height="341" fill="url(#rug-fade)"/>
           <linearGradient id="rug-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050506" stop-opacity="0"/><stop offset="1" stop-color="#050506" stop-opacity=".8"/></linearGradient>
         </svg>
@@ -236,6 +243,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795801750"></script>
+  <script type="module" src="js/app.js?v=1795801867"></script>
 </body>
 </html>
