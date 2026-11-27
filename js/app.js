@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795808994';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795809580';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -865,8 +865,13 @@ function setRoundPhoto(url) {
     if (my !== photoToken) return;
     if (!ok) { setTimeout(() => { if (my === photoToken) setRoundPhoto(url); }, 800); return; }
     img.src = url;
+    // foto past niet goed in het kader (breed, vierkant of klein)? dan helemaal tonen op een vage achtergrond van zichzelf
+    const wrap = $('#photo-wrap');
+    wrap.style.setProperty('--ph', `url("${url}")`);
+    const fit = () => { if (my !== photoToken || !img.naturalWidth) return; const ar = img.naturalWidth / img.naturalHeight; wrap.classList.toggle('fit', ar > 0.86 || img.naturalWidth < 420); };
+    if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once: true });
     S.photoReady = true;
-    $('#photo-wrap').classList.remove('loading');
+    wrap.classList.remove('loading');
   });
 }
 
