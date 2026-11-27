@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795800378">
+  <link rel="stylesheet" href="css/style.css?v=1795800658">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -46,11 +46,27 @@
     <div id="login">
       <div class="login-logo">FACE<span>OFF</span></div>
       <div id="invite-banner" class="invite-banner" hidden><span class="ib-k">Uitdaging</span><span><b id="inv-host"></b> daagt je uit voor een FaceOff</span><span class="ib-s">Geef je naam en je zit meteen in de kamer</span></div>
-      <button id="btn-login" class="btn-start">LOGIN</button>
-      <form id="login-form" hidden autocomplete="off">
-        <input id="in-name" maxlength="20" placeholder="Jouw naam" autocomplete="nickname" enterkeyhint="go">
-        <button type="submit" class="enter-btn" aria-label="Enter">↵</button>
+      <div class="shirt-wrap">
+        <div class="shirt-ring r1"></div><div class="shirt-ring r2"></div>
+        <svg id="shirt" viewBox="0 0 300 320" role="img" aria-label="Jouw shirt">
+          <defs>
+            <linearGradient id="sh-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a58"/><stop offset="1" stop-color="#d7222f"/></linearGradient>
+            <linearGradient id="sh-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".18" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+            <path id="name-arc" d="M70 112 Q150 90 230 112"/>
+          </defs>
+          <path d="M60 40 L110 20 Q150 38 190 20 L240 40 L294 94 L262 136 L236 118 L236 302 Q150 314 64 302 L64 118 L38 136 L6 94 Z" fill="url(#sh-g)" stroke="#0e0e10" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M64 118 L64 302 Q150 314 236 302 L236 118" fill="url(#sh-s)"/>
+          <path d="M6 94 L24 74 L54 114 L38 136 Z M294 94 L276 74 L246 114 L262 136 Z" fill="#0e0e10"/>
+          <path d="M110 20 Q150 38 190 20 Q150 50 110 20 Z" fill="#0e0e10"/>
+          <text class="shirt-name" fill="#fff"><textPath id="shirt-name" href="#name-arc" startOffset="50%" text-anchor="middle">JOUW NAAM</textPath></text>
+          <text class="shirt-num" x="150" y="252" text-anchor="middle" fill="#fff">10</text>
+        </svg>
+      </div>
+      <form id="login-form" autocomplete="off">
+        <input id="in-name" maxlength="16" placeholder="Zet je naam op het shirt" autocomplete="nickname" enterkeyhint="go" aria-label="Jouw naam">
+        <button type="submit" class="btn-start">SPELEN</button>
       </form>
+      <button id="btn-login" hidden>LOGIN</button>
       <p class="intro-tip">Zet je geluid aan</p>
     </div>
 
@@ -214,6 +230,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795800378"></script>
+  <script type="module" src="js/app.js?v=1795800658"></script>
 </body>
 </html>

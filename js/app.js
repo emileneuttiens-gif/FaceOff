@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800378';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, PLAYLIST, REEL, CHORUS_AT } from './config.js?v=1795800658';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -479,6 +479,21 @@ function openLogin() {
   $('#in-name').select();
 }
 $('#btn-login').addEventListener('click', () => { unlockMusic(); openLogin(); });
+// naam live op het shirt
+function paintShirt() {
+  const n = ($('#in-name').value.trim() || 'JOUW NAAM').toUpperCase();
+  const t = $('#shirt-name');
+  t.textContent = n;
+  const size = Math.max(14, Math.min(30, 240 / Math.max(n.length, 1) * 1.05));
+  t.parentNode.setAttribute('font-size', size.toFixed(1));
+  $('#shirt').classList.toggle('empty', !$('#in-name').value.trim());
+}
+$('#in-name').addEventListener('input', paintShirt);
+let musicUnlocked = false;
+const unlockOnce = () => { if (!musicUnlocked) { musicUnlocked = true; unlockMusic(); } };
+['pointerdown', 'keydown'].forEach((ev) => $('#login').addEventListener(ev, unlockOnce));
+paintShirt();
+setTimeout(() => { if (home.dataset.phase === 'login') $('#in-name').focus(); }, 300);
 $('#login-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const n = $('#in-name').value.trim();
@@ -503,8 +518,7 @@ $('#login-form').addEventListener('submit', (e) => {
 document.addEventListener('keydown', (e) => {
   if (!home.classList.contains('active')) return;
   const p = home.dataset.phase;
-  if (p === 'login' && !$('#btn-login').hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); unlockMusic(); openLogin(); }
-  else if (p === 'welcome') { e.preventDefault(); toMenu(); }
+  if (p === 'welcome') { e.preventDefault(); toMenu(); }
 });
 home.addEventListener('click', (e) => { if (home.dataset.phase === 'welcome' && !e.target.closest('#btn-skip')) toMenu(); });
 $('#btn-skip').addEventListener('click', (e) => { e.stopPropagation(); skipIntro(); });
