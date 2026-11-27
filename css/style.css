@@ -99,9 +99,9 @@ select { width: 100%; background: #0a0f1a; color: var(--text); border: 1px solid
 #timer-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--lime), #ffe14d, #ff5a5a); background-size: 300% 100%; transform-origin: left; }
 .stage { flex: 1; min-height: 0; width: min(760px, 100%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .photo-wrap { position: relative; flex: 1; min-height: 0; aspect-ratio: 3/4; max-width: 100%; border-radius: 20px; overflow: hidden; background: #0a0f1a; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
-#photo { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; opacity: 0; transform: scale(1.06); transition: opacity .35s ease, transform 6s ease-out, filter .4s ease; }
+#photo { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; opacity: 0; transform: scale(1.04); transition: opacity .25s ease, transform 4s ease-out; }
 #photo.show { opacity: 1; transform: scale(1); }
-#photo.hidden-pre { filter: blur(30px) brightness(.5); }
+
 .countdown { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: 140px; color: var(--lime); text-shadow: 0 0 40px rgba(0,0,0,.7); pointer-events: none; }
 .countdown.tick { animation: cd .9s ease; }
 @keyframes cd { 0% { transform: scale(1.8); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { opacity: 0; transform: scale(.8); } }
@@ -300,3 +300,10 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 .dlg-row .btn { margin: 0; }
 /* tijdbalk vloeiend */
 #timer-fill { will-change: transform; }
+
+/* foto laden + bezig met raden */
+.photo-wrap.loading::after { content: ''; position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--lime); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#btn-guess.busy { opacity: .7; pointer-events: none; position: relative; color: transparent; }
+#btn-guess.busy::after { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 2px solid rgba(7,16,0,.25); border-top-color: #071000; animation: spin .6s linear infinite; }
+#in-guess.busy { border-color: var(--lime); }

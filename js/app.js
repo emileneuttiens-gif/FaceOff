@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795783007';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795783787';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -666,6 +666,39 @@ async function ensurePool() {
   } catch { S.pool = []; }
 }
 
+// ---- foto's: vooraf laden, en pas tonen als ze echt binnen zijn ----
+const photoCache = new Map();   // url -> Promise<boolean>
+function preloadPhoto(url) {
+  if (!url) return Promise.resolve(false);
+  if (!photoCache.has(url)) {
+    photoCache.set(url, new Promise((res) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(true));
+      im.onerror = () => { photoCache.delete(url); res(false); };
+      im.src = url;
+    }));
+  }
+  return photoCache.get(url);
+}
+let photoToken = 0;
+S.photoReady = false;
+function setRoundPhoto(url) {
+  const img = $('#photo');
+  const my = ++photoToken;
+  S.photoReady = false;
+  img.classList.remove('show');
+  img.removeAttribute('src');                    // nooit de foto van de vorige ronde laten staan
+  $('#photo-wrap').classList.add('loading');
+  preloadPhoto(url).then((ok) => {
+    if (my !== photoToken) return;
+    if (!ok) { setTimeout(() => { if (my === photoToken) setRoundPhoto(url); }, 800); return; }
+    img.src = url;
+    S.photoReady = true;
+    $('#photo-wrap').classList.remove('loading');
+  });
+}
+
 let raf;
 function renderGame() {
   const r = S.room;
@@ -682,14 +715,12 @@ function renderGame() {
   $('#sb-round').textContent = `Ronde ${r.round}/${r.total_rounds}`;
   $("#sb-mode").textContent = leagueName(r.mode_label);
   $('#btn-skipround').hidden = !(S.solo || !r.guest_name);
+  if (r.next_photo_url) preloadPhoto(r.next_photo_url);
 
   // nieuwe ronde
   if (r.round !== S.shownRound) {
     S.shownRound = r.round;
-    const img = $('#photo');
-    img.classList.remove('show');
-    img.classList.add('hidden-pre');
-    img.src = r.photo_url;
+    setRoundPhoto(r.photo_url);
     $('#credit').textContent = r.photo_credit ? `Foto: ${r.photo_credit} · Wikimedia Commons` : '';
     $('#hints').innerHTML = '';
     $('#reveal').hidden = true;
@@ -713,7 +744,7 @@ function renderGame() {
   // onthulling
   if (r.status === 'reveal' && S.revealedRound !== r.round) {
     S.revealedRound = r.round;
-    $('#photo').classList.remove('hidden-pre'); $('#photo').classList.add('show');
+    if (S.photoReady) $('#photo').classList.add('show');
     $('#countdown').textContent = '';
     $('#reveal').hidden = false;
     $('#reveal-name').textContent = r.reveal_name;
@@ -775,10 +806,10 @@ function loop() {
     if (lastCount !== 0) {
       lastCount = 0;
       $('#countdown').textContent = '';
-      img.classList.remove('hidden-pre'); img.classList.add('show');
       sfx.go();
       $('#in-guess').focus();
     }
+    if (S.photoReady && !img.classList.contains('show')) img.classList.add('show');
     const frac = Math.max(0, Math.min(1, (end - now) / (end - start)));
     const fill = $('#timer-fill');
     fill.style.transform = `scaleX(${frac})`;
@@ -800,20 +831,28 @@ function loop() {
 }
 
 // raden
+let guessPending = false;
 async function guess(text) {
   text = (text ?? $('#in-guess').value).trim();
-  if (!text || S.room?.status !== 'playing' || serverNow() < Date.parse(S.room.round_start)) return;
+  if (guessPending || !text || S.room?.status !== 'playing' || serverNow() < Date.parse(S.room.round_start)) return;
   closeAc();
+  guessPending = true;
+  const round = S.room.round;
+  const btn = $('#btn-guess'), inp = $('#in-guess');
+  btn.classList.add('busy'); inp.classList.add('busy'); inp.readOnly = true;   // meteen zichtbaar: we zijn aan het controleren
   try {
-    const res = await rpc('submit_guess', { p_code: S.code, p_token: S.token, p_guess: text });
-    if (res.correct) { $('#in-guess').classList.add('good'); }
-    else if (res.reason === 'wrong') {
+    const res = await rpc('submit_guess', { p_code: S.code, p_token: S.token, p_guess: text, p_round: round });
+    if (res.correct) { inp.classList.add('good'); }
+    else if (res.reason === 'wrong' && S.room.round === round) {
       sfx.bad();
-      const i = $('#in-guess');
-      i.classList.remove('shake'); void i.offsetWidth; i.classList.add('shake');
-      i.select();
+      inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
+      setTimeout(() => inp.select(), 0);
     }
   } catch (e) { toast(e.message); }
+  finally {
+    guessPending = false;
+    btn.classList.remove('busy'); inp.classList.remove('busy'); inp.readOnly = false;
+  }
 }
 $('#btn-guess').addEventListener('click', () => guess());
 $('#btn-skipround').addEventListener('click', async () => {
