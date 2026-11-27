@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795782219';
+import { SUPABASE_URL, SUPABASE_KEY, MUSIC_VIDEO_ID, MUSIC_FALLBACK_IDS, MUSIC_START_SECONDS, MUSIC_FILE, HINT_TIMES, REEL, CHORUS_AT } from './config.js?v=1795782489';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -41,12 +41,26 @@ async function rpc(fn, args = {}) {
   const t0 = Date.now();
   const { data, error } = await sb.rpc(fn, args);
   if (error) throw new Error(error.message);
-  if (data && data.server_now) {
-    const rtt = Date.now() - t0;
-    S.offset = Date.parse(data.server_now) - (Date.now() - rtt / 2);
-  }
+  if (data && data.server_now) syncClock(Date.parse(data.server_now), Date.now() - t0);
   return data;
 }
+
+// Klok gelijkzetten met de server zonder te springen: we bewaren de laatste metingen,
+// vertrouwen de snelste (kleinste vertraging) en schuiven de klok er rustig naartoe.
+const clockSamples = [];
+let clockTarget = null;
+function syncClock(serverMs, rtt) {
+  clockSamples.push({ off: serverMs - (Date.now() - rtt / 2), rtt });
+  if (clockSamples.length > 10) clockSamples.shift();
+  const best = clockSamples.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+  clockTarget = best.off;
+  if (clockSamples.length === 1 || Math.abs(clockTarget - S.offset) > 1500) S.offset = clockTarget;
+}
+setInterval(() => {
+  if (clockTarget == null) return;
+  const d = clockTarget - S.offset;
+  S.offset += Math.max(-8, Math.min(8, d));   // max 8 ms per 100 ms bijsturen: onzichtbaar
+}, 100);
 
 // ---------- geluid ----------
 let ac;
@@ -722,12 +736,23 @@ function renderGame() {
   }
 }
 
+// punten optellen met een korte tel-animatie
 function setScore(sel, v) {
   const el = $(sel);
-  if (el.textContent !== String(v)) {
-    el.textContent = v;
-    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
-  }
+  const to = Number(v) || 0;
+  const from = Number(el.dataset.v ?? el.textContent) || 0;
+  if (from === to && el.dataset.v != null) return;
+  el.dataset.v = to;
+  if (to <= from) { el.textContent = to; return; }
+  cancelAnimationFrame(el._raf);
+  const t0 = performance.now(), dur = 700;
+  const stepF = () => {
+    const f = Math.min(1, (performance.now() - t0) / dur);
+    el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - f, 3)));
+    if (f < 1) el._raf = requestAnimationFrame(stepF);
+  };
+  stepF();
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
 }
 
 let lastCount = null, hintsShown = 0;
@@ -864,13 +889,28 @@ function renderEnd() {
     const winSlot = r.host_score > r.guest_score ? 1 : 2;
     title = winSlot === S.slot ? '<span class="win">Gewonnen!</span>' : 'Verloren…';
   }
+  if (r.left_slot && r.left_slot !== S.slot) {
+    title = `<span class="win">Gewonnen</span>`;
+    $('#end-hint').textContent = `${esc(r.left_slot === 1 ? r.host_name : r.guest_name)} heeft het spel verlaten.`;
+  }
   $('#end-title').innerHTML = title;
-  $('#btn-again').hidden = !isHost();
-  $('#end-hint').textContent = isHost() ? '' : 'De host kan een nieuwe wedstrijd starten.';
+  $('#btn-again').hidden = !isHost() || !!(r.left_slot && r.left_slot !== S.slot);
+  if (!(r.left_slot && r.left_slot !== S.slot)) $('#end-hint').textContent = isHost() ? '' : 'De host kan een nieuwe wedstrijd starten.';
   if (S.lastStatus !== 'finished') sfx.good();
 }
 $('#btn-again').addEventListener('click', async () => {
   try { applyRoom(await rpc('back_to_lobby', { p_code: S.code, p_token: S.token })); } catch (e) { toast(e.message); }
 });
 $('#btn-menu').addEventListener('click', leaveRoom);
+
+// spel verlaten
+$('#btn-exit').addEventListener('click', () => { $('#exit-dlg').hidden = false; });
+$('#exit-no').addEventListener('click', () => { $('#exit-dlg').hidden = true; });
+$('#exit-yes').addEventListener('click', async () => {
+  $('#exit-dlg').hidden = true;
+  try { await rpc('leave_room', { p_code: S.code, p_token: S.token }); } catch { /* */ }
+  cancelAnimationFrame(raf);
+  S.shownRound = 0; S.revealedRound = 0;
+  leaveRoom();
+});
 

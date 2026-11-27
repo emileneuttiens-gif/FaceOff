@@ -287,3 +287,16 @@ body.in-game .music { top: 12px; bottom: auto; left: 12px; transform: scale(.85)
 #home[data-phase="login"] #brand, #home[data-phase="reel"] #brand { opacity: 0; visibility: hidden; }
 
 #zoom-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: none; pointer-events: none; }
+
+/* verlaten */
+.scorebar .mid { position: relative; }
+.exit-btn { position: absolute; top: -2px; left: 50%; transform: translate(-50%, -110%); width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: rgba(21,29,46,.9); color: #c9d2e0; font-size: 14px; line-height: 1; }
+.exit-btn:hover { background: #2a1520; color: #ff8a9e; border-color: #ff4d6d; }
+#game .scorebar { margin-top: 30px; }
+.dlg { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.6); display: grid; place-items: center; animation: fadein .2s ease; }
+.dlg-box { width: min(360px, 88vw); background: #0f1626; border: 1px solid var(--line); border-radius: 18px; padding: 22px; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.dlg-t { font-family: var(--display); font-size: 30px; margin-bottom: 4px; }
+.dlg-row { display: flex; gap: 10px; margin-top: 14px; }
+.dlg-row .btn { margin: 0; }
+/* tijdbalk vloeiend */
+#timer-fill { will-change: transform; }

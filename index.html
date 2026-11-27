@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=1795782219">
+  <link rel="stylesheet" href="css/style.css?v=1795782489">
 </head>
 <body>
   <div id="bg" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="pitch"></div></div>
@@ -122,7 +122,7 @@
   <section id="game" class="screen">
     <header class="scorebar">
       <div class="side left" id="sb-p1"><span class="nm">Speler 1</span><span class="sc">0</span></div>
-      <div class="mid"><div class="rnd" id="sb-round">Ronde 1/10</div><div class="mode" id="sb-mode"></div></div>
+      <div class="mid"><button id="btn-exit" class="exit-btn" title="Spel verlaten" aria-label="Spel verlaten">✕</button><div class="rnd" id="sb-round">Ronde 1/10</div><div class="mode" id="sb-mode"></div></div>
       <div class="side right" id="sb-p2"><span class="sc">0</span><span class="nm">Speler 2</span></div>
     </header>
     <div class="timer"><div id="timer-fill"></div></div>
@@ -152,6 +152,14 @@
 
   <div class="toast" id="toast"></div>
 
+  <div id="exit-dlg" class="dlg" hidden>
+    <div class="dlg-box">
+      <div class="dlg-t">Spel verlaten?</div>
+      <p class="small muted">In multiplayer wint je tegenstander dan deze wedstrijd.</p>
+      <div class="dlg-row"><button id="exit-no" class="btn">Blijven</button><button id="exit-yes" class="btn primary">Verlaten</button></div>
+    </div>
+  </div>
+
   <!-- END -->
   <section id="end" class="screen">
     <div class="panel end-panel">
@@ -180,6 +188,6 @@
   </div>
 
   <script src="https://www.youtube.com/iframe_api" async></script>
-  <script type="module" src="js/app.js?v=1795782219"></script>
+  <script type="module" src="js/app.js?v=1795782489"></script>
 </body>
 </html>
